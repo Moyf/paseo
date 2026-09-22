@@ -5,6 +5,7 @@ import {
   useAppSettings,
   type OpenInSidePanePreferences,
   type PullRequestOpenLocation,
+  type TerminalOpenLocation,
 } from "@/hooks/use-settings";
 
 const SOURCES = [
@@ -15,31 +16,36 @@ const SOURCES = [
   "subagents",
 ] as const satisfies readonly (keyof OpenInSidePanePreferences)[];
 
-type LayoutPreferenceSource = keyof OpenInSidePanePreferences | "pullRequests";
+type LayoutPreferenceSource = keyof OpenInSidePanePreferences | "pullRequests" | "terminal";
+type LayoutPreferenceDestination = PullRequestOpenLocation | "bottom";
+
+const TERMINAL_DESTINATIONS: readonly TerminalOpenLocation[] = ["main", "side", "bottom"];
 
 function LayoutPreferenceRow({
   source,
   destination,
-  allowExplorer,
+  destinations,
   onDestinationChange,
 }: {
   source: LayoutPreferenceSource;
-  destination: PullRequestOpenLocation;
-  allowExplorer?: boolean;
-  onDestinationChange(source: LayoutPreferenceSource, destination: PullRequestOpenLocation): void;
+  destination: LayoutPreferenceDestination;
+  destinations: readonly LayoutPreferenceDestination[];
+  onDestinationChange(
+    source: LayoutPreferenceSource,
+    destination: LayoutPreferenceDestination,
+  ): void;
 }) {
   const { t } = useTranslation();
-  const options = useMemo(() => {
-    const destinations = allowExplorer
-      ? (["main", "side", "explorer"] as const)
-      : (["main", "side"] as const);
-    return destinations.map((value) => ({
-      value,
-      label: t(`settings.layout.openInSidePane.destinations.${value}`),
-    }));
-  }, [allowExplorer, t]);
+  const options = useMemo(
+    () =>
+      destinations.map((value) => ({
+        value,
+        label: t(`settings.layout.openInSidePane.destinations.${value}`),
+      })),
+    [destinations, t],
+  );
   const change = useCallback(
-    (value: PullRequestOpenLocation) => onDestinationChange(source, value),
+    (value: LayoutPreferenceDestination) => onDestinationChange(source, value),
     [source, onDestinationChange],
   );
   return (
@@ -56,9 +62,19 @@ export function LayoutSection() {
   const { t } = useTranslation();
   const { settings, updateSettings } = useAppSettings();
   const handleDestinationChange = useCallback(
-    (source: LayoutPreferenceSource, destination: PullRequestOpenLocation) => {
+    (source: LayoutPreferenceSource, destination: LayoutPreferenceDestination) => {
       if (source === "pullRequests") {
+        if (destination === "bottom") {
+          return;
+        }
         void updateSettings({ pullRequestOpenLocation: destination });
+        return;
+      }
+      if (source === "terminal") {
+        if (destination === "explorer") {
+          return;
+        }
+        void updateSettings({ terminalOpenLocation: destination });
         return;
       }
       void updateSettings({
@@ -75,13 +91,20 @@ export function LayoutSection() {
             key={source}
             source={source}
             destination={settings.openInSidePane[source] ? "side" : "main"}
+            destinations={["main", "side"]}
             onDestinationChange={handleDestinationChange}
           />
         ))}
         <LayoutPreferenceRow
+          source="terminal"
+          destination={settings.terminalOpenLocation}
+          destinations={TERMINAL_DESTINATIONS}
+          onDestinationChange={handleDestinationChange}
+        />
+        <LayoutPreferenceRow
           source="pullRequests"
           destination={settings.pullRequestOpenLocation}
-          allowExplorer
+          destinations={["main", "side", "explorer"]}
           onDestinationChange={handleDestinationChange}
         />
       </SettingsCard>
