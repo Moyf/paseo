@@ -866,6 +866,10 @@ interface WorkspaceTerminalTabActionsInput {
     tabId: string,
     target: WorkspaceTabTarget,
   ) => string | null;
+  /** Overrides the focused pane for implicit opens; an explicit pane still wins. */
+  resolveImplicitPlacement: (
+    destination: TerminalTabDestination,
+  ) => WorkspaceTabPlacement | undefined;
   labels: {
     workspacePathUnavailable: string;
     terminalQueued: string;
@@ -891,6 +895,7 @@ function useWorkspaceTerminalTabActions({
   persistenceKey,
   openWorkspaceTabFocused,
   replaceWorkspaceTabTarget,
+  resolveImplicitPlacement,
   labels,
   toast,
 }: WorkspaceTerminalTabActionsInput): WorkspaceTerminalTabActions {
@@ -909,10 +914,10 @@ function useWorkspaceTerminalTabActions({
       openWorkspaceTabFocused(
         persistenceKey,
         { kind: "terminal", terminalId },
-        paneLocalPlacement(destination.paneId),
+        resolveImplicitPlacement(destination) ?? paneLocalPlacement(destination.paneId),
       );
     },
-    [openWorkspaceTabFocused, persistenceKey, replaceWorkspaceTabTarget],
+    [openWorkspaceTabFocused, persistenceKey, replaceWorkspaceTabTarget, resolveImplicitPlacement],
   );
   const handleScriptTerminalSelected = useCallback(
     (terminalId: string) => {
@@ -1127,6 +1132,27 @@ function WorkspaceScreenContent({
     workspaceAgentVisibilityEqual,
   );
 
+  const terminalOpenLocation = useSettings((settings) => settings.terminalOpenLocation);
+  const ensureSidePane = useWorkspaceLayoutStore((state) => state.ensureSidePane);
+  const ensureBottomPane = useWorkspaceLayoutStore((state) => state.ensureBottomPane);
+  const resolveImplicitTerminalPlacement = useCallback(
+    (destination: TerminalTabDestination): WorkspaceTabPlacement | undefined => {
+      if (isMobile || !persistenceKey || destination.kind !== "open" || destination.paneId) {
+        return undefined;
+      }
+      if (terminalOpenLocation === "bottom") {
+        const paneId = ensureBottomPane(persistenceKey);
+        return paneId ? { mode: "prefer", paneId } : undefined;
+      }
+      if (terminalOpenLocation === "side") {
+        const paneId = ensureSidePane(persistenceKey);
+        return paneId ? { mode: "prefer", paneId } : undefined;
+      }
+      return undefined;
+    },
+    [ensureBottomPane, ensureSidePane, isMobile, persistenceKey, terminalOpenLocation],
+  );
+
   const {
     handleTerminalCreated,
     handleScriptTerminalSelected,
@@ -1137,6 +1163,7 @@ function WorkspaceScreenContent({
     persistenceKey,
     openWorkspaceTabFocused,
     replaceWorkspaceTabTarget,
+    resolveImplicitPlacement: resolveImplicitTerminalPlacement,
     labels: {
       workspacePathUnavailable: t("workspace.header.toasts.workspacePathUnavailable"),
       terminalQueued: t("workspace.header.toasts.terminalQueued"),
