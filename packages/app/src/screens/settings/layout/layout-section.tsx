@@ -20,6 +20,12 @@ type LayoutPreferenceSource = keyof OpenInSidePanePreferences | "pullRequests" |
 type LayoutPreferenceDestination = PullRequestOpenLocation | "bottom";
 
 const TERMINAL_DESTINATIONS: readonly TerminalOpenLocation[] = ["main", "side", "bottom"];
+const MAIN_AND_SIDE_DESTINATIONS: readonly LayoutPreferenceDestination[] = ["main", "side"];
+const PULL_REQUEST_DESTINATIONS: readonly LayoutPreferenceDestination[] = [
+  "main",
+  "side",
+  "explorer",
+];
 
 function LayoutPreferenceRow({
   source,
@@ -91,7 +97,7 @@ export function LayoutSection() {
             key={source}
             source={source}
             destination={settings.openInSidePane[source] ? "side" : "main"}
-            destinations={["main", "side"]}
+            destinations={MAIN_AND_SIDE_DESTINATIONS}
             onDestinationChange={handleDestinationChange}
           />
         ))}
@@ -104,7 +110,7 @@ export function LayoutSection() {
         <LayoutPreferenceRow
           source="pullRequests"
           destination={settings.pullRequestOpenLocation}
-          destinations={["main", "side", "explorer"]}
+          destinations={PULL_REQUEST_DESTINATIONS}
           onDestinationChange={handleDestinationChange}
         />
       </SettingsCard>

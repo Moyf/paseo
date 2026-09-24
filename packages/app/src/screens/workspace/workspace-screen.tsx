@@ -1688,7 +1688,13 @@ function WorkspaceScreenContent({
   const ensureBottomPane = useWorkspaceLayoutStore((state) => state.ensureBottomPane);
   const resolveImplicitTerminalPlacement = useCallback(
     (destination: TerminalTabDestination): WorkspaceTabPlacement | undefined => {
-      if (isMobile || !persistenceKey || destination.kind !== "open" || destination.paneId) {
+      if (
+        isMobile ||
+        !supportsDesktopPaneSplits() ||
+        !persistenceKey ||
+        destination.kind !== "open" ||
+        destination.paneId
+      ) {
         return undefined;
       }
       if (terminalOpenLocation === "bottom") {
