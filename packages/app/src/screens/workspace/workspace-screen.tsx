@@ -57,6 +57,7 @@ import {
   openPreferredWorkspaceTarget,
   openWorkspaceTargetBeside,
 } from "@/workspace-tabs/open-beside";
+import { resolveImplicitTerminalPlacement } from "@/workspace-tabs/terminal-open-location";
 import { openWorkspacePullRequest } from "@/workspace-tabs/open-supporting-view";
 import { type ExplorerCheckoutContext } from "@/stores/explorer-checkout-context";
 import { traceInstant } from "@/performance/native-trace";
@@ -79,7 +80,7 @@ import {
   type WorkspaceTab,
   type WorkspaceTabTarget,
 } from "@/workspace-tabs/model";
-import { useSettings } from "@/hooks/use-settings";
+import { useSettings, type TerminalOpenLocation } from "@/hooks/use-settings";
 import { useKeyboardActionHandler } from "@/hooks/use-keyboard-action-handler";
 import { buildWorkspaceKeyboardHandlerId } from "@/keyboard/handler-id";
 import type {
@@ -1407,6 +1408,8 @@ function canDetectPullRequest(
 
 interface WorkspaceTerminalTabActionsInput {
   persistenceKey: string | null;
+  isCompact: boolean;
+  terminalOpenLocation: TerminalOpenLocation;
   openWorkspaceTabFocused: (
     workspaceKey: string,
     target: WorkspaceTabTarget,
@@ -1417,10 +1420,6 @@ interface WorkspaceTerminalTabActionsInput {
     tabId: string,
     target: WorkspaceTabTarget,
   ) => string | null;
-  /** Overrides the focused pane for implicit opens; an explicit pane still wins. */
-  resolveImplicitPlacement: (
-    destination: TerminalTabDestination,
-  ) => WorkspaceTabPlacement | undefined;
   labels: {
     workspacePathUnavailable: string;
     terminalQueued: string;
@@ -1444,9 +1443,10 @@ interface WorkspaceTerminalTabActions {
 
 function useWorkspaceTerminalTabActions({
   persistenceKey,
+  isCompact,
+  terminalOpenLocation,
   openWorkspaceTabFocused,
   replaceWorkspaceTabTarget,
-  resolveImplicitPlacement,
   labels,
   toast,
 }: WorkspaceTerminalTabActionsInput): WorkspaceTerminalTabActions {
@@ -1465,10 +1465,22 @@ function useWorkspaceTerminalTabActions({
       openWorkspaceTabFocused(
         persistenceKey,
         { kind: "terminal", terminalId },
-        resolveImplicitPlacement(destination) ?? paneLocalPlacement(destination.paneId),
+        resolveImplicitTerminalPlacement({
+          isCompact,
+          supportsPaneSplits: supportsDesktopPaneSplits(),
+          persistenceKey,
+          location: terminalOpenLocation,
+          destination,
+        }) ?? paneLocalPlacement(destination.paneId),
       );
     },
-    [openWorkspaceTabFocused, persistenceKey, replaceWorkspaceTabTarget, resolveImplicitPlacement],
+    [
+      isCompact,
+      openWorkspaceTabFocused,
+      persistenceKey,
+      replaceWorkspaceTabTarget,
+      terminalOpenLocation,
+    ],
   );
   const handleScriptTerminalSelected = useCallback(
     (terminalId: string) => {
@@ -1684,31 +1696,6 @@ function WorkspaceScreenContent({
   );
 
   const terminalOpenLocation = useSettings((settings) => settings.terminalOpenLocation);
-  const ensureSidePane = useWorkspaceLayoutStore((state) => state.ensureSidePane);
-  const ensureBottomPane = useWorkspaceLayoutStore((state) => state.ensureBottomPane);
-  const resolveImplicitTerminalPlacement = useCallback(
-    (destination: TerminalTabDestination): WorkspaceTabPlacement | undefined => {
-      if (
-        isMobile ||
-        !supportsDesktopPaneSplits() ||
-        !persistenceKey ||
-        destination.kind !== "open" ||
-        destination.paneId
-      ) {
-        return undefined;
-      }
-      if (terminalOpenLocation === "bottom") {
-        const paneId = ensureBottomPane(persistenceKey);
-        return paneId ? { mode: "prefer", paneId } : undefined;
-      }
-      if (terminalOpenLocation === "side") {
-        const paneId = ensureSidePane(persistenceKey);
-        return paneId ? { mode: "prefer", paneId } : undefined;
-      }
-      return undefined;
-    },
-    [ensureBottomPane, ensureSidePane, isMobile, persistenceKey, terminalOpenLocation],
-  );
 
   const {
     handleTerminalCreated,
@@ -1718,9 +1705,10 @@ function WorkspaceScreenContent({
     handleTerminalCreateFailed,
   } = useWorkspaceTerminalTabActions({
     persistenceKey,
+    isCompact: isMobile,
+    terminalOpenLocation,
     openWorkspaceTabFocused,
     replaceWorkspaceTabTarget,
-    resolveImplicitPlacement: resolveImplicitTerminalPlacement,
     labels: {
       workspacePathUnavailable: t("workspace.header.toasts.workspacePathUnavailable"),
       terminalQueued: t("workspace.header.toasts.terminalQueued"),
