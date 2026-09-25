@@ -1,19 +1,21 @@
 import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import { TitlebarDragRegion } from "./titlebar-drag-region";
 
 (globalThis as Record<string, unknown>).IS_REACT_ACT_ENVIRONMENT = true;
 
-const electronRuntime = vi.hoisted(() => ({ enabled: true }));
-
-vi.mock("@/constants/layout", () => ({
-  getIsElectronRuntime: () => electronRuntime.enabled,
-}));
-vi.mock("@/constants/platform", () => ({
-  isNative: false,
-  isWeb: true,
-}));
+// Electron detection runs off the real `window.paseoDesktop` bridge the
+// desktop preload installs — no module mocks. Every bridge field is optional,
+// so an empty object is enough for `getIsElectronRuntime()`. Detection caches
+// `true` for the module lifetime, so the negative case must run first.
+function setElectronBridge(enabled: boolean): void {
+  if (enabled) {
+    window.paseoDesktop = {};
+  } else {
+    delete window.paseoDesktop;
+  }
+}
 
 // The production backstop CSS lives in public/index.html; the vitest browser
 // server serves public assets at the root.
@@ -34,17 +36,15 @@ async function loadBackstopCss(): Promise<string> {
   return backstop;
 }
 
-interface RegionRect {
-  region: "drag" | "no-drag";
-  left: number;
-  right: number;
-  top: number;
-  bottom: number;
-}
-
-/** Mirrors Electron's draggable-region math: union(drag) minus union(no-drag). */
+/**
+ * Mirrors Electron's draggable-region math: union(drag) minus union(no-drag).
+ * Drag and no-drag coverage accumulate independently so a later drag rect can
+ * never paper over a no-drag rect it overlaps, in any order.
+ */
 function draggableWidthAtRow(y: number, fromX: number, toX: number): number {
-  const rects: RegionRect[] = [];
+  const columns = Math.ceil((toX - fromX) / 2);
+  const dragMask = Array.from({ length: columns }, () => false);
+  const noDragMask = Array.from({ length: columns }, () => false);
   for (const element of document.body.querySelectorAll("*")) {
     if (!(element instanceof HTMLElement)) continue;
     const computed = window.getComputedStyle(element);
@@ -52,23 +52,17 @@ function draggableWidthAtRow(y: number, fromX: number, toX: number): number {
     if (region !== "drag" && region !== "no-drag") continue;
     const rect = element.getBoundingClientRect();
     if (rect.width <= 0 || rect.height <= 0) continue;
-    rects.push({
-      region,
-      left: rect.left,
-      right: rect.right,
-      top: rect.top,
-      bottom: rect.bottom,
-    });
+    if (rect.top > y || y >= rect.bottom) continue;
+    const mask = region === "drag" ? dragMask : noDragMask;
+    const start = Math.max(0, Math.floor((rect.left - fromX) / 2));
+    const end = Math.min(columns, Math.ceil((rect.right - fromX) / 2));
+    for (let index = start; index < end; index++) mask[index] = true;
   }
-  const covered = Array.from({ length: Math.ceil((toX - fromX) / 2) }, () => false);
-  for (const entry of rects
-    .filter((candidate) => candidate.top <= y && y < candidate.bottom)
-    .sort((left, right) => left.left - right.left)) {
-    const start = Math.max(0, Math.floor((entry.left - fromX) / 2));
-    const end = Math.min(covered.length, Math.ceil((entry.right - fromX) / 2));
-    for (let index = start; index < end; index++) covered[index] = entry.region === "drag";
+  let draggable = 0;
+  for (let index = 0; index < columns; index++) {
+    if (dragMask[index] && !noDragMask[index]) draggable++;
   }
-  return covered.filter(Boolean).length * 2;
+  return draggable * 2;
 }
 
 const surfaceStyle = { position: "relative", height: 36, width: 600 } as const;
@@ -111,7 +105,7 @@ function Scenario() {
 const roots: Root[] = [];
 
 afterEach(() => {
-  electronRuntime.enabled = true;
+  setElectronBridge(false);
   for (const root of roots.splice(0)) {
     act(() => root.unmount());
   }
@@ -119,7 +113,20 @@ afterEach(() => {
 });
 
 describe("TitlebarDragRegion draggable-region cascade", () => {
+  // Runs before the Electron-mode test: detection caches `true` for the module
+  // lifetime once the bridge appears, so the negative case must go first.
+  it("renders nothing outside Electron", () => {
+    setElectronBridge(false);
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+    const root = createRoot(container);
+    roots.push(root);
+    act(() => root.render(<TitlebarDragRegion />));
+    expect(container.innerHTML).toBe("");
+  });
+
   it("keeps the strip draggable when scrolled-out content passes through it", async () => {
+    setElectronBridge(true);
     const style = document.createElement("style");
     style.textContent = await loadBackstopCss();
     document.head.appendChild(style);
@@ -161,15 +168,5 @@ describe("TitlebarDragRegion draggable-region cascade", () => {
     const freeFrom = surfaceRect.left + 130;
     const freeTo = surfaceRect.left + 500;
     expect(draggableWidthAtRow(18, freeFrom, freeTo)).toBe(freeTo - freeFrom);
-  });
-
-  it("renders nothing outside Electron", () => {
-    electronRuntime.enabled = false;
-    const container = document.createElement("div");
-    document.body.appendChild(container);
-    const root = createRoot(container);
-    roots.push(root);
-    act(() => root.render(<TitlebarDragRegion />));
-    expect(container.innerHTML).toBe("");
   });
 });
