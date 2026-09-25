@@ -40,8 +40,12 @@ mac:
   minimumSystemVersion: "13.0.0"
   category: public.app-category.developer-tools
   icon: assets/icon.icns
-  hardenedRuntime: true
-  notarize: true
+  # Unsigned/ad-hoc local builds MUST NOT enable hardened runtime: dyld library
+  # validation then requires a matching Team ID, which ad-hoc signatures don't
+  # have, and the app dies at launch with "different Team IDs" (upstream #4613).
+  # Re-enable both only when building with a real Developer ID certificate.
+  hardenedRuntime: false
+  notarize: false
   entitlements: build/entitlements.mac.plist
   entitlementsInherit: build/entitlements.mac.inherit.plist
   extraResources:

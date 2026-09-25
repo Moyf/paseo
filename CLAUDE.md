@@ -106,6 +106,18 @@ Repo dev commands use checkout-local state by default. In this checkout, `PASEO_
 
 See [docs/development.md](docs/development.md) for full setup, build sync requirements, and debugging.
 
+## Local desktop builds (fork)
+
+`npm run build:desktop` produces `packages/desktop/release/Paseo-<version>-arm64.dmg` (unpacked app in `release/mac-arm64/`). Builds here have no signing identity, so electron-builder falls back to an ad-hoc signature.
+
+Keep `hardenedRuntime: false` and `notarize: false` in `packages/desktop/electron-builder.yml`. Upstream sets them to `true` for their certificate-backed builds — preserve the fork values when merging upstream ([getpaseo/paseo#4613](https://github.com/getpaseo/paseo/issues/4613)): hardened runtime turns on dyld library validation, which requires a matching Team ID, which ad-hoc signatures don't have — the packaged app dies at launch with "different Team IDs".
+
+An already-installed app crashing that way can be fixed in place without a rebuild:
+
+```bash
+codesign --force --deep --sign - /Applications/Paseo.app
+```
+
 ## Release branches
 
 When the user says "this goes to next", create or
