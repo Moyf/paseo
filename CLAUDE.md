@@ -6,7 +6,7 @@ Paseo is a mobile app for monitoring and controlling your local AI coding agents
 
 ## Repository map
 
-This is an npm workspace monorepo:
+This is a pnpm workspace monorepo:
 
 - `packages/server` — Daemon: agent lifecycle, WebSocket API, MCP server
 - `packages/app` — Mobile + web client (Expo)
