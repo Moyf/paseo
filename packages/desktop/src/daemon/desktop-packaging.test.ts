@@ -9,6 +9,7 @@ import {
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
+import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
@@ -189,4 +190,34 @@ it("installs the Linux helper as root-owned 4755 regardless of root's namespace 
   expect(installer).toContain("chown root:root '/opt/${sanitizedProductName}/chrome-sandbox'");
   expect(installer).toContain("chmod 4755 '/opt/${sanitizedProductName}/chrome-sandbox'");
   expect(installer).not.toContain("chmod 0755");
+});
+
+it("collects transitive runtime dependencies through pnpm workspace links", async () => {
+  const require = createRequire(import.meta.url);
+  const {
+    getCollectorByPackageManager,
+  } = require("app-builder-lib/out/node-module-collector/index.js");
+  const { TmpDir } = require("temp-file");
+  const temporaryFiles = new TmpDir();
+  try {
+    const collector = getCollectorByPackageManager("pnpm", packageRoot, temporaryFiles);
+    const result = await collector.getNodeModules({ packageName: "@getpaseo/desktop" });
+    const names = new Set<string>();
+    interface CollectedModule {
+      name: string;
+      dependencies?: CollectedModule[];
+    }
+    const visit = (modules: CollectedModule[]): void => {
+      for (const module of modules) {
+        names.add(module.name);
+        visit(module.dependencies ?? []);
+      }
+    };
+    visit(result.nodeModules);
+    for (const name of ["@getpaseo/server", "which", "node-pty", "@opencode-ai/sdk"]) {
+      expect(names.has(name), name).toBe(true);
+    }
+  } finally {
+    await temporaryFiles.cleanup();
+  }
 });
