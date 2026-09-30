@@ -3,7 +3,18 @@
 ## Prerequisites
 
 - Node.js (see `.tool-versions` for exact version)
-- npm workspaces (comes with Node)
+- pnpm 10.33.0 (`corepack enable` then `corepack install`)
+
+Install with `pnpm install --frozen-lockfile`. The workspace uses a hoisted layout
+for Expo and Electron. pnpm shares dependency files through its content store;
+build outputs and packaged apps still occupy space in each checkout.
+
+`pnpm-lock.yaml` owns development and CI installs. Keep `package-lock.json` for
+the existing Nix `buildNpmPackage` builds; update it when changing dependencies
+used by Nix. The npm workspace script interfaces remain available for packaging
+and Nix. pnpm applies the dependency patches from `patches/pnpm`; npm installs
+use the corresponding patch-package files in `patches/`. Update both when
+changing a patch.
 
 ## Running the dev server
 

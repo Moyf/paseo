@@ -145,6 +145,8 @@ test("PR routing declares stable behavior ownership", () => {
       ".tool-versions",
       "package.json",
       "package-lock.json",
+      "pnpm-lock.yaml",
+      "pnpm-workspace.yaml",
       "patches/**",
       "scripts/**",
       "tsconfig.json",
@@ -301,5 +303,18 @@ test("desktop packaging smokes main pushes and only the pull requests that touch
   assert.doesNotMatch(source, /dorny\/paths-filter/);
   for (const action of ["actions/checkout", "actions/setup-node", "actions/upload-artifact"]) {
     assert.match(source, new RegExp(`${action}@[0-9a-f]{40} # v\\d+\\.\\d+\\.\\d+`));
+  }
+});
+
+test("workspace installs use pinned pnpm and frozen locks", () => {
+  const pkg = JSON.parse(readFileSync(new URL("package.json", repoRoot), "utf8"));
+  assert.equal(pkg.packageManager, "pnpm@10.33.0");
+  for (const file of readdirSync(new URL(".github/workflows/", repoRoot))) {
+    if (!file.endsWith(".yml") || file.startsWith("nix")) continue;
+    const workflow = readFileSync(new URL(`.github/workflows/${file}`, repoRoot), "utf8");
+    if (!workflow.includes('cache: "pnpm"')) continue;
+    assert.match(workflow, /pnpm\/action-setup@v4/, file);
+    assert.match(workflow, /pnpm install --frozen-lockfile/, file);
+    assert.doesNotMatch(workflow, /npm-retry\.mjs ci/, file);
   }
 });

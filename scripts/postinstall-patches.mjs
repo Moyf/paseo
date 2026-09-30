@@ -2,6 +2,11 @@ import { copyFileSync, existsSync, mkdirSync, readdirSync, rmSync } from "node:f
 import { spawnSync } from "node:child_process";
 import { join, relative } from "node:path";
 
+// pnpm applies patches while importing packages into its shared store.
+if (process.env.npm_config_user_agent?.startsWith("pnpm/")) {
+  process.exit(0);
+}
+
 // In CI we often install a single workspace (e.g. server/relay/website). Only apply patches
 // when the patched dependency is actually present.
 // `cwd` is where patch-package must run from. Packages that npm does not hoist to the
