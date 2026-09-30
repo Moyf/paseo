@@ -1,0 +1,14 @@
+diff --git a/out/node-module-collector/index.js b/out/node-module-collector/index.js
+--- a/out/node-module-collector/index.js
++++ b/out/node-module-collector/index.js
+@@ -18,7 +18,9 @@
+ function getCollectorByPackageManager(pm, rootDir, tempDirManager) {
+     switch (pm) {
+         case packageManager_1.PM.PNPM:
+-            return new pnpmNodeModulesCollector_1.PnpmNodeModulesCollector(rootDir, tempDirManager);
++            // pnpm 10 list omits transitive dependencies of linked workspace packages.
++            // Traverse installed manifests so packaged daemons retain their dependencies.
++            return new traversalNodeModulesCollector_1.TraversalNodeModulesCollector(rootDir, tempDirManager);
+         case packageManager_1.PM.YARN:
+             return new yarnNodeModulesCollector_1.YarnNodeModulesCollector(rootDir, tempDirManager);
+         case packageManager_1.PM.YARN_BERRY:

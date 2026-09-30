@@ -35,3 +35,4 @@ patchedDependencies:
   "react-native-markdown-display@7.0.2": patches/pnpm/react-native-markdown-display+7.0.2.patch
   "react-native-svg@15.15.3": patches/pnpm/react-native-svg+15.15.3.patch
   "react-native-unistyles@3.2.4": patches/pnpm/react-native-unistyles+3.2.4.patch
+  "app-builder-lib@26.8.1": patches/pnpm/app-builder-lib+26.8.1.patch

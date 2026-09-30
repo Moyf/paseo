@@ -14,6 +14,10 @@ if (process.env.npm_config_user_agent?.startsWith("pnpm/")) {
 // the patch's node_modules/... paths relative to its working directory.
 const patchedPackages = [
   {
+    nodeModulesPath: "node_modules/app-builder-lib",
+    patchPrefix: "app-builder-lib+",
+  },
+  {
     nodeModulesPath: "node_modules/react-native-markdown-display",
     patchPrefix: "react-native-markdown-display+",
   },
