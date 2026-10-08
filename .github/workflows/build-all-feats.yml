@@ -65,20 +65,20 @@ jobs:
         include:
           - os: windows-latest
             name: windows
-            targets: "--win --x64 --arm64"
+            targets: "--win --x64"
           - os: macos-14
             name: macos
             targets: "--mac --arm64"
     env:
       VERSION: ${{ needs.version.outputs.version }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           ref: local/all-feats
           fetch-depth: 1
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: "22"
           cache: "npm"
@@ -115,7 +115,7 @@ jobs:
           shopt -s nullglob
           cd "${DESKTOP_PACKAGE_PATH}/release"
           gh release upload "v${VERSION}" \
-            *.exe *.zip *.dmg *.yml *.blockmap \
+            *.exe *.zip *.dmg latest*.yml *.blockmap \
             --clobber --repo "${{ github.repository }}"
 
       - name: Upload workflow artifact backup
@@ -128,5 +128,6 @@ jobs:
             ${{ env.DESKTOP_PACKAGE_PATH }}/release/*.zip
             ${{ env.DESKTOP_PACKAGE_PATH }}/release/*.dmg
             ${{ env.DESKTOP_PACKAGE_PATH }}/release/*.yml
+            !${{ env.DESKTOP_PACKAGE_PATH }}/release/builder-debug.yml
           retention-days: 7
           if-no-files-found: ignore
