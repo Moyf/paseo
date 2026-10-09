@@ -126,6 +126,9 @@ jobs:
         shell: bash
         env:
           EP_GH_IGNORE_TIME: "true"
+          # Metro web bundling of packages/app OOMs at Node's default heap on the
+          # 7 GB macos-14 runners ("Ineffective mark-compacts near heap limit").
+          NODE_OPTIONS: "--max-old-space-size=6144"
         run: |
           set -euo pipefail
           npm run build:desktop -- --publish never ${{ matrix.targets }}
