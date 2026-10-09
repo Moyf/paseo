@@ -199,6 +199,10 @@ export default defineConfig({
         find: /^lucide-react-native$/,
         replacement: path.resolve(__dirname, "test-stubs/lucide-react-native.ts"),
       },
+      {
+        find: /^expo-clipboard$/,
+        replacement: path.resolve(__dirname, "test-stubs/expo-clipboard.ts"),
+      },
     ],
   },
 });

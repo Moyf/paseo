@@ -312,26 +312,34 @@ describe("parseAssistantFileLink", () => {
     });
   });
 
-  it("strips a redundant leading workspace folder name from relative paths", () => {
+  it("routes workspace-folder-name-prefixed relative paths through the daemon lookup", () => {
+    // A real subfolder can carry the workspace folder's name, so the parser must not
+    // guess; classification hands the decision to the daemon's suffix search.
     expect(
-      parseAssistantFileLink("civil-rhino\\docs\\electron-mose-vs-server.html", {
+      classifyAssistantFileLink("civil-rhino\\docs\\electron-mose-vs-server.html", {
         workspaceRoot: "C:/Codes/civil-rhino",
       }),
     ).toEqual({
-      raw: "civil-rhino\\docs\\electron-mose-vs-server.html",
-      path: "C:/Codes/civil-rhino/docs/electron-mose-vs-server.html",
-      lineStart: undefined,
-      lineEnd: undefined,
+      kind: "ambiguousFileCandidate",
+      target: {
+        raw: "civil-rhino\\docs\\electron-mose-vs-server.html",
+        path: "C:/Codes/civil-rhino/civil-rhino/docs/electron-mose-vs-server.html",
+        lineStart: undefined,
+        lineEnd: undefined,
+      },
     });
     expect(
-      parseAssistantFileLink("civil-rhino/docs/electron-mose-vs-server.html:12", {
+      classifyAssistantFileLink("civil-rhino/docs/electron-mose-vs-server.html:12", {
         workspaceRoot: "/repo/civil-rhino",
       }),
     ).toEqual({
-      raw: "civil-rhino/docs/electron-mose-vs-server.html:12",
-      path: "/repo/civil-rhino/docs/electron-mose-vs-server.html",
-      lineStart: 12,
-      lineEnd: undefined,
+      kind: "ambiguousFileCandidate",
+      target: {
+        raw: "civil-rhino/docs/electron-mose-vs-server.html:12",
+        path: "/repo/civil-rhino/civil-rhino/docs/electron-mose-vs-server.html",
+        lineStart: 12,
+        lineEnd: undefined,
+      },
     });
   });
 

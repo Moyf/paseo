@@ -598,7 +598,21 @@ function isAmbiguousWorkspaceCandidate(
     return false;
   }
 
-  return !parsed.path.includes("/");
+  if (!parsed.path.includes("/")) {
+    return true;
+  }
+
+  // Agents often prefix workspace-relative paths with the workspace folder's own name
+  // ("myapp/src/main.ts" while working inside "myapp"). A real subfolder can carry that
+  // name too, so hand the decision to the daemon's suffix search instead of guessing
+  // which file exists.
+  const trimmedRoot = normalizedWorkspaceRoot.replace(/\/+$/, "");
+  const rootFolderName = trimmedRoot === "/" ? null : (trimmedRoot.split("/").pop() ?? null);
+  if (!rootFolderName) {
+    return false;
+  }
+  const firstSegment = parsed.path.split("/")[0];
+  return !!firstSegment && firstSegment.toLowerCase() === rootFolderName.toLowerCase();
 }
 
 function getHeuristicLocalPath(value: string): string | null {

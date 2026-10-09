@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import { FileActionsContextMenuContent } from "@/components/file-actions-menu";
 import { getIsElectron } from "@/constants/platform";
 import { useToast } from "@/contexts/toast-context";
+import { useIsLocalDaemon } from "@/hooks/use-is-local-daemon";
 import { openDesktopTarget, useDesktopOpenTargets } from "@/workspace/desktop-open-targets";
 import { resolveWorkspaceFilePaths, type OpenFileDisposition } from "@/workspace/file-open";
 import type { InlinePathTarget } from "./parse";
@@ -13,6 +14,7 @@ import type { AssistantFileLinkSource } from "./resolver";
 interface AssistantFileLinkContextMenuContentProps {
   source: AssistantFileLinkSource;
   target: InlinePathTarget;
+  serverId: string;
   workspaceRoot?: string;
   onOpen: (source: AssistantFileLinkSource, disposition: OpenFileDisposition) => void;
   testIDPrefix?: string;
@@ -30,6 +32,7 @@ function toNativeAbsolutePath(value: string): string {
 export function AssistantFileLinkContextMenuContent({
   source,
   target,
+  serverId,
   workspaceRoot,
   onOpen,
   testIDPrefix,
@@ -37,7 +40,12 @@ export function AssistantFileLinkContextMenuContent({
   const { t } = useTranslation();
   const toast = useToast();
   const isElectron = getIsElectron();
-  const { targets } = useDesktopOpenTargets({ isLocalExecution: isElectron });
+  // Reveal and editor opens run on this machine, so a remote daemon's paths must not
+  // reach the local file manager.
+  const isLocalDaemon = useIsLocalDaemon(serverId);
+  const { targets } = useDesktopOpenTargets({
+    isLocalExecution: isElectron && isLocalDaemon,
+  });
   const fileManagerTarget = targets.find((candidate) => candidate.kind === "file-manager");
 
   const resolvedPaths = useMemo(
@@ -102,7 +110,9 @@ export function AssistantFileLinkContextMenuContent({
       onOpenToSide={openToSide}
       onCopyPath={absolutePath ? copyPath : undefined}
       onCopyRelativePath={resolvedPaths?.relativePath ? copyRelativePath : undefined}
-      onReveal={isElectron && fileManagerTarget && absolutePath ? reveal : undefined}
+      onReveal={
+        isElectron && isLocalDaemon && fileManagerTarget && absolutePath ? reveal : undefined
+      }
       revealTargetName={fileManagerTarget?.label}
       testIDPrefix={testIDPrefix}
     />
