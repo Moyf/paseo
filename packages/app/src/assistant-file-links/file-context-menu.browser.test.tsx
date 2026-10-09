@@ -9,20 +9,26 @@ import type { InlinePathTarget } from "./parse";
 import { AssistantFileLinkContextMenuContent } from "./file-context-menu";
 import type { AssistantFileLinkSource } from "./resolver";
 
-// Closing a menu runs Reanimated's web exit animation, which throws asynchronously
-// inside the library while the panel unmounts. It never reaches app code; swallow it
-// so the run is not marked failed by library noise.
-const isReanimatedNoise = (message: unknown): boolean =>
-  String(message).includes("react-native-reanimated");
+// Closing the menu runs the popover's web exit animation; under headless Chromium,
+// reanimated's layout animation unmount hook (_updatePropsJS) throws this one exact
+// known TypeError while the surface unmounts. Match only that signature so any other
+// error from the menu still fails the run.
+function isKnownMenuCloseAnimationError(error: unknown): boolean {
+  return (
+    error instanceof TypeError &&
+    error.message === "Cannot convert undefined or null to object" &&
+    String(error.stack ?? "").includes("_updatePropsJS")
+  );
+}
 
 window.addEventListener("unhandledrejection", (event) => {
-  if (isReanimatedNoise(event.reason)) {
+  if (isKnownMenuCloseAnimationError(event.reason)) {
     event.preventDefault();
   }
 });
 
 window.addEventListener("error", (event) => {
-  if (isReanimatedNoise(event.error ?? event.message)) {
+  if (isKnownMenuCloseAnimationError(event.error ?? event.message)) {
     event.preventDefault();
   }
 });
