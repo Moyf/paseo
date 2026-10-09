@@ -54,13 +54,23 @@ jobs:
       VERSION: ${{ needs.version.outputs.version }}
       GH_TOKEN: ${{ github.token }}
     steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: local/all-feats
+          fetch-depth: 1
+
       - name: Create release
         run: |
+          # Release notes come from the topmost "## " section of FORK_CHANGELOG.md.
+          notes=$(awk 'found && /^## /{exit} /^## /{found=1} found' FORK_CHANGELOG.md)
+          if [[ -z "$notes" ]]; then
+            notes="Built from \`local/all-feats\` at ${{ github.sha }}."
+          fi
           gh release create "v${VERSION}" \
             --repo "${{ github.repository }}" \
             --target "${{ github.sha }}" \
             --title "Paseo all-feats ${VERSION}" \
-            --notes "Built from \`local/all-feats\` at ${{ github.sha }}." \
+            --notes "$notes" \
             || gh release view "v${VERSION}" --repo "${{ github.repository }}"
 
   build:
@@ -73,14 +83,17 @@ jobs:
         include:
           - os: windows-latest
             name: windows
+            platform_tag: windows-x64
             # Explicit target names override the per-target arch lists in
             # electron-builder.yml; "--win --x64" alone would still build arm64.
             targets: "--win nsis zip --x64"
           - os: macos-14
             name: macos
+            platform_tag: macos-arm64
             targets: "--mac --arm64"
     env:
       VERSION: ${{ needs.version.outputs.version }}
+      PLATFORM_TAG: ${{ matrix.platform_tag }}
     steps:
       - uses: actions/checkout@v5
         with:
@@ -141,9 +154,23 @@ jobs:
           set -euo pipefail
           shopt -s nullglob
           cd "${DESKTOP_PACKAGE_PATH}/release"
-          gh release upload "v${VERSION}" \
-            *.exe *.zip *.dmg latest*.yml *.blockmap \
-            --clobber --repo "${{ github.repository }}"
+          # Only ship the installers: drop zips, blockmaps, and electron-updater
+          # metadata. Name each file with its platform tag.
+          uploads=()
+          for file in *.exe *.dmg; do
+            [[ -f "$file" ]] || continue
+            base="${file%.*}"
+            ext="${file##*.}"
+            base="${base%-x64}"
+            base="${base%-arm64}"
+            renamed="${base}-${PLATFORM_TAG}.${ext}"
+            mv "$file" "$renamed"
+            uploads+=("$renamed")
+          done
+          if (( ${#uploads[@]} > 0 )); then
+            gh release upload "v${VERSION}" "${uploads[@]}" \
+              --clobber --repo "${{ github.repository }}"
+          fi
 
       - name: Upload workflow artifact backup
         if: always()
