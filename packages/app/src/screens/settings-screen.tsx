@@ -50,6 +50,7 @@ import { HostStatusDot } from "@/components/host-status-dot";
 import { SettingsSection } from "@/components/settings/headings/settings-section";
 import { AppearanceSection } from "@/screens/settings/appearance/appearance-section";
 import { OpenLocationSection } from "@/screens/settings/open-location/open-location-section";
+import { ForkAboutSection } from "@/screens/fork-about-section";
 import { TerminalSection } from "@/screens/settings/terminal/terminal-section";
 import { ChatSection } from "@/screens/settings/chat/chat-section";
 import { SidebarNavSection } from "@/screens/settings/sidebar/sidebar-nav-section";
@@ -467,6 +468,7 @@ function AboutSection({ appVersion, appVersionText, isDesktopApp }: AboutSection
           {isDesktopApp ? <DesktopAppUpdateRow /> : null}
         </View>
       </SettingsSection>
+      <ForkAboutSection />
       <ConnectedHostsSection clientVersion={appVersion} />
       <View style={styles.aboutCommunity}>
         <CommunityLinks />
