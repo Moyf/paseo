@@ -110,6 +110,7 @@ export function AssistantMarkdownLink({
         <AssistantFileLinkContextMenuContent
           source={source}
           target={target}
+          serverId={configRef.current.serverId ?? ""}
           workspaceRoot={workspaceRoot}
           onOpen={open}
           testIDPrefix="assistant-file-link"
