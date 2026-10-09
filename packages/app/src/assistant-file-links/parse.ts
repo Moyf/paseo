@@ -200,6 +200,32 @@ export function parseInlinePathToken(value: string): InlinePathTarget | null {
   };
 }
 
+function splitColonLineSuffix(
+  value: string,
+): { basePath: string; lineStart: number; lineEnd?: number } | null {
+  const match = INLINE_COLON_LINE_SUFFIX.exec(value);
+  if (!match) {
+    return null;
+  }
+
+  const basePath = match[1]?.trim();
+  if (!basePath) {
+    return null;
+  }
+
+  const lineStart = match[2] ? parseInt(match[2], 10) : Number.NaN;
+  if (!Number.isFinite(lineStart) || lineStart <= 0) {
+    return null;
+  }
+
+  const lineEnd = match[3] ? parseInt(match[3], 10) : undefined;
+  if (lineEnd !== undefined && (!Number.isFinite(lineEnd) || lineEnd <= 0 || lineEnd < lineStart)) {
+    return null;
+  }
+
+  return { basePath, lineStart, lineEnd };
+}
+
 export function parseFileProtocolUrl(value: string): InlinePathTarget | null {
   const trimmed = value?.trim();
   if (!trimmed) {
@@ -227,10 +253,25 @@ export function parseFileProtocolUrl(value: string): InlinePathTarget | null {
     return null;
   }
 
+  // Agents and terminals emit VS Code-style `file:///C:/dir/file.ts:95` links although the
+  // line suffix is not part of the URL spec: `new URL()` keeps it in the pathname, so a
+  // path that still carries `:95` would be opened verbatim and fail with ENOENT.
+  let path = normalizedPath;
+  let { lineStart, lineEnd } = lines;
+  const suffix = splitColonLineSuffix(path);
+  if (suffix && isAbsolutePath(suffix.basePath)) {
+    path = suffix.basePath;
+    if (lineStart === undefined) {
+      lineStart = suffix.lineStart;
+      lineEnd = suffix.lineEnd;
+    }
+  }
+
   return {
     raw: value,
-    path: normalizedPath,
-    ...lines,
+    path,
+    lineStart,
+    lineEnd,
   };
 }
 
@@ -640,6 +681,17 @@ function resolveRelativePathUnderRoot(pathValue: string, workspaceRoot: string):
 
   const root = workspaceRoot.replace(/\/+$/, "") || "/";
   const pathSegments = normalizedPath.split("/");
+  // Agents often prefix workspace-relative paths with the workspace folder's own name
+  // ("civil-rhino/docs/x.html" while working inside "civil-rhino"), which resolves to a
+  // path that does not exist. Drop that redundant leading segment.
+  const rootFolderName = root === "/" ? null : (root.split("/").pop() ?? null);
+  if (
+    rootFolderName &&
+    pathSegments.length > 1 &&
+    pathSegments[0]?.toLowerCase() === rootFolderName.toLowerCase()
+  ) {
+    pathSegments.shift();
+  }
   const resolvedSegments: string[] = [];
   for (const segment of pathSegments) {
     if (!segment || segment === ".") {
