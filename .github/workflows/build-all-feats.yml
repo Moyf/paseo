@@ -154,10 +154,10 @@ jobs:
           set -euo pipefail
           shopt -s nullglob
           cd "${DESKTOP_PACKAGE_PATH}/release"
-          # Only ship the installers: drop zips, blockmaps, and electron-updater
-          # metadata. Name each file with its platform tag.
+          # Only ship the installers and portable zips: drop blockmaps and
+          # electron-updater metadata. Name each file with its platform tag.
           uploads=()
-          for file in *.exe *.dmg; do
+          for file in *.exe *.zip *.dmg; do
             [[ -f "$file" ]] || continue
             base="${file%.*}"
             ext="${file##*.}"
