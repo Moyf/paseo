@@ -41,7 +41,7 @@ const LINK_CONTEXT_TRIGGER_STYLE: ViewStyle = {
 function WebLink({ link, anchorProps, children }: LinkRendererProps) {
   const source = markdownLinkSource(link.url, link.sourceType);
   const { target, open, tooltipPath, onHoverIn } = useFileLink(source);
-  const { workspaceRoot } = useAssistantFileLinkEnvironment();
+  const { workspaceRoot, serverId } = useAssistantFileLinkEnvironment();
   const anchorStyle = useMemo(
     () => ({ ...anchorProps.style, overflowWrap: "anywhere" as const }),
     [anchorProps.style],
@@ -60,6 +60,7 @@ function WebLink({ link, anchorProps, children }: LinkRendererProps) {
         <AssistantFileLinkContextMenuContent
           source={source}
           target={target}
+          serverId={serverId ?? ""}
           workspaceRoot={workspaceRoot}
           onOpen={open}
           testIDPrefix="assistant-file-link"
