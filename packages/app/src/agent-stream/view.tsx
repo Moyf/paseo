@@ -91,10 +91,12 @@ import {
   AssistantFileLinkResolverProvider,
   normalizeInlinePathTarget,
 } from "@/assistant-file-links";
-import { planInlinePathOpen } from "./inline-path-open";
+import { openDesktopTarget, useFileManagerOpenTarget } from "@/workspace/desktop-open-targets";
+import { openInlinePathPlan, planInlinePathOpen } from "@/workspace/inline-path-open";
 import {
   createWorkspaceFileTabTarget,
   normalizeWorkspaceFileLocation,
+  toNativeAbsolutePath,
   type OpenFileDisposition,
   type WorkspaceFileOpenRequest,
 } from "@/workspace/file-open";
@@ -378,6 +380,9 @@ const AgentStreamViewComponent = forwardRef<AgentStreamViewHandle, AgentStreamVi
     const transformTimelineItem = useInstalledTimelineTransform(resolvedServerId);
 
     const client = useSessionStore((state) => state.sessions[resolvedServerId]?.client ?? null);
+    // Opening external folders from chat hands them to the OS file manager, which only
+    // makes sense for the local machine's own daemon.
+    const fileManagerTarget = useFileManagerOpenTarget(resolvedServerId);
     const sessionStreamHead = useSessionStore((state) =>
       state.sessions[resolvedServerId]?.agentStreamHead?.get(agentId),
     );
@@ -497,31 +502,30 @@ const AgentStreamViewComponent = forwardRef<AgentStreamViewHandle, AgentStreamVi
           });
         };
 
+        const revealInFileManager = (absolutePath: string) => {
+          if (!fileManagerTarget) {
+            openFileLocation();
+            return;
+          }
+          void openDesktopTarget({
+            editorId: fileManagerTarget.id,
+            workspacePath: workspaceRoot,
+            filePath: toNativeAbsolutePath(absolutePath),
+          }).catch(() => openFileLocation());
+        };
+
         const plan = planInlinePathOpen({
           file: normalized.file,
           lineStart: target.lineStart,
           workspaceRoot,
         });
 
-        if (plan.kind === "file") {
-          openFileLocation();
-          return;
-        }
-
-        if (plan.kind === "directory") {
-          openFilesExplorerAt(normalized.directory || ".");
-          return;
-        }
-
-        if (!client) {
-          openFileLocation();
-          return;
-        }
-
-        void client.listDirectory(workspaceRoot, plan.directoryPath).then(
-          () => openFilesExplorerAt(plan.directoryPath),
-          () => openFileLocation(),
-        );
+        void openInlinePathPlan(plan, workspaceRoot, {
+          client,
+          openFile: openFileLocation,
+          openExplorerAt: openFilesExplorerAt,
+          revealInFileManager,
+        });
       },
     );
 
