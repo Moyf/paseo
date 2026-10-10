@@ -28,19 +28,45 @@ describe("planInlinePathOpen", () => {
     });
   });
 
-  it("probes extension-less workspace-relative paths", () => {
+  it("probes extension-less workspace-relative paths against the workspace root", () => {
     expect(
       planInlinePathOpen({ file: "packages/app/moys-asr-workflow", workspaceRoot: "/repo" }),
-    ).toEqual({ kind: "probe", directoryPath: "packages/app/moys-asr-workflow" });
+    ).toEqual({
+      kind: "probe",
+      root: "/repo",
+      relativePath: "packages/app/moys-asr-workflow",
+      underWorkspace: true,
+    });
     expect(planInlinePathOpen({ file: "Makefile", workspaceRoot: "/repo" })).toEqual({
       kind: "probe",
-      directoryPath: "Makefile",
+      root: "/repo",
+      relativePath: "Makefile",
+      underWorkspace: true,
     });
   });
 
-  it("opens extension-less absolute paths directly as files", () => {
-    expect(planInlinePathOpen({ file: "C:/Tools/some-folder", workspaceRoot: "C:/repo" })).toEqual({
-      kind: "file",
+  it("probes extension-less workspace folders case-insensitively on drive paths", () => {
+    expect(
+      planInlinePathOpen({ file: "C:/Repo/MOYS-ASR-WORKFLOW", workspaceRoot: "C:/repo" }),
+    ).toEqual({
+      kind: "probe",
+      root: "C:/repo",
+      relativePath: "MOYS-ASR-WORKFLOW",
+      underWorkspace: true,
+    });
+  });
+
+  it("probes extension-less absolute paths outside the workspace against their parent", () => {
+    expect(
+      planInlinePathOpen({
+        file: "C:/Windows/System32/paseo-token-lease",
+        workspaceRoot: "C:/repo",
+      }),
+    ).toEqual({
+      kind: "probe",
+      root: "C:/Windows/System32",
+      relativePath: "paseo-token-lease",
+      underWorkspace: false,
     });
   });
 
