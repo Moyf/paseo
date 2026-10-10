@@ -3,11 +3,13 @@ import React from "react";
 import * as Clipboard from "expo-clipboard";
 import { useTranslation } from "react-i18next";
 import { FileActionsContextMenuContent } from "@/components/file-actions-menu";
-import { getIsElectron } from "@/constants/platform";
 import { useToast } from "@/contexts/toast-context";
-import { useIsLocalDaemon } from "@/hooks/use-is-local-daemon";
-import { openDesktopTarget, useDesktopOpenTargets } from "@/workspace/desktop-open-targets";
-import { resolveWorkspaceFilePaths, type OpenFileDisposition } from "@/workspace/file-open";
+import { openDesktopTarget, useFileManagerOpenTarget } from "@/workspace/desktop-open-targets";
+import {
+  resolveWorkspaceFilePaths,
+  toNativeAbsolutePath,
+  type OpenFileDisposition,
+} from "@/workspace/file-open";
 import type { InlinePathTarget } from "./parse";
 import type { AssistantFileLinkSource } from "./resolver";
 
@@ -18,10 +20,6 @@ interface AssistantFileLinkContextMenuContentProps {
   workspaceRoot?: string;
   onOpen: (source: AssistantFileLinkSource, disposition: OpenFileDisposition) => void;
   testIDPrefix?: string;
-}
-
-function toNativeAbsolutePath(value: string): string {
-  return /^[A-Za-z]:\//.test(value) ? value.replace(/\//g, "\\") : value;
 }
 
 /**
@@ -39,14 +37,9 @@ export function AssistantFileLinkContextMenuContent({
 }: AssistantFileLinkContextMenuContentProps): ReactElement | null {
   const { t } = useTranslation();
   const toast = useToast();
-  const isElectron = getIsElectron();
   // Reveal and editor opens run on this machine, so a remote daemon's paths must not
   // reach the local file manager.
-  const isLocalDaemon = useIsLocalDaemon(serverId);
-  const { targets } = useDesktopOpenTargets({
-    isLocalExecution: isElectron && isLocalDaemon,
-  });
-  const fileManagerTarget = targets.find((candidate) => candidate.kind === "file-manager");
+  const fileManagerTarget = useFileManagerOpenTarget(serverId);
 
   const resolvedPaths = useMemo(
     () => (workspaceRoot ? resolveWorkspaceFilePaths({ path: target.path, workspaceRoot }) : null),
@@ -63,7 +56,6 @@ export function AssistantFileLinkContextMenuContent({
     }
     return null;
   }, [resolvedPaths, target.path]);
-
   const copyPath = useCallback(() => {
     if (!absolutePath) {
       return;
@@ -110,9 +102,7 @@ export function AssistantFileLinkContextMenuContent({
       onOpenToSide={openToSide}
       onCopyPath={absolutePath ? copyPath : undefined}
       onCopyRelativePath={resolvedPaths?.relativePath ? copyRelativePath : undefined}
-      onReveal={
-        isElectron && isLocalDaemon && fileManagerTarget && absolutePath ? reveal : undefined
-      }
+      onReveal={fileManagerTarget && absolutePath ? reveal : undefined}
       revealTargetName={fileManagerTarget?.label}
       testIDPrefix={testIDPrefix}
     />
