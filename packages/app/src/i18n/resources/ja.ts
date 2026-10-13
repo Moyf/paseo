@@ -125,6 +125,8 @@ export const ja: TranslationResources = {
     input: {
       accessibilityLabel: "エージェントにメッセージ...",
       terminalAccessibilityLabel: "Terminal prompt",
+      fullscreen: "全画面表示",
+      exitFullscreen: "全画面表示を終了",
       focusHint: "{{shortcut}}でフォーカス",
       addAttachment: "添付ファイルを追加",
       interruptAgent: "エージェントを中断",
@@ -1443,6 +1445,9 @@ export const ja: TranslationResources = {
         upToDateWithLastChecked: "最新の状態です。最終確認: {{time}}。",
         pending: "更新の準備ができたらお知らせします。",
         pendingWithLastChecked: "更新の準備ができたらお知らせします。最終確認: {{time}}。",
+        pendingNotifyOnly: "更新が見つかりました: {{version}}。自動アップデートはオフです。",
+        pendingNotifyOnlyWithLastChecked:
+          "更新が見つかりました: {{version}}。自動アップデートはオフです。最終確認: {{time}}。",
         pendingWithVersion: "更新が見つかりました: {{version}}。ダウンロード中...",
         pendingWithVersionAndLastChecked:
           "更新が見つかりました: {{version}}。ダウンロード中... 最終確認: {{time}}。",
@@ -1467,6 +1472,8 @@ export const ja: TranslationResources = {
         installingDescription: "インストールして再起動中...",
         versionReady: "{{version}}のインストール準備ができました。",
         newVersionReady: "新しいバージョンのインストール準備ができました。",
+        foundNotifyOnly: "{{version}} が利用可能です。自動アップデートはオフです。",
+        foundNotifyOnlyNoVersion: "新しいバージョンが利用可能です。自動アップデートはオフです。",
         restartWarning:
           "アプリを更新すると、実行中のエージェントが停止しターミナルセッションが閉じられます。",
       },
@@ -2246,6 +2253,11 @@ export const ja: TranslationResources = {
       },
       updates: {
         label: "アプリの更新",
+        autoUpdate: {
+          label: "自動アップデート",
+          description:
+            "アップデートを自動的にダウンロードしてインストールします。オフにすると新バージョンを通知だけで知らせ、手動でインストールできます。",
+        },
         readyToInstall: "インストール準備完了: {{version}}",
         installTitle: "デスクトップの更新をインストール",
         installMessage: "このコンピューターのPaseoを更新します",

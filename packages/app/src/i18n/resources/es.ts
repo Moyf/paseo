@@ -125,6 +125,8 @@ export const es: TranslationResources = {
     input: {
       accessibilityLabel: "Agente de mensajes...",
       terminalAccessibilityLabel: "Terminal prompt",
+      fullscreen: "Pantalla completa",
+      exitFullscreen: "Salir de pantalla completa",
       focusHint: "{{shortcut}}para enfocar",
       addAttachment: "Agregar archivo adjunto",
       interruptAgent: "agente de interrupción",
@@ -1466,6 +1468,10 @@ export const es: TranslationResources = {
         pending: "Le avisaremos cuando la actualización esté lista.",
         pendingWithLastChecked:
           "Le avisaremos cuando la actualización esté lista. Última comprobación a las {{time}}.",
+        pendingNotifyOnly:
+          "Actualización encontrada: {{version}}. Las actualizaciones automáticas están desactivadas.",
+        pendingNotifyOnlyWithLastChecked:
+          "Actualización encontrada: {{version}}. Las actualizaciones automáticas están desactivadas. Última comprobación: {{time}}.",
         pendingWithVersion: "Actualización encontrada: {{version}}. Descargando...",
         pendingWithVersionAndLastChecked:
           "Actualización encontrada: {{version}}. Descargando... Última comprobación a las {{time}}.",
@@ -1491,6 +1497,10 @@ export const es: TranslationResources = {
         installingDescription: "Instalando y reiniciando...",
         versionReady: "{{version}}está listo para instalar.",
         newVersionReady: "Una nueva versión está lista para instalar.",
+        foundNotifyOnly:
+          "{{version}} está disponible. Las actualizaciones automáticas están desactivadas.",
+        foundNotifyOnlyNoVersion:
+          "Hay una nueva versión disponible. Las actualizaciones automáticas están desactivadas.",
         restartWarning:
           "La actualización de la aplicación dejará de ejecutar agentes y cerrará sesiones de terminal.",
       },
@@ -2278,6 +2288,11 @@ export const es: TranslationResources = {
       },
       updates: {
         label: "Actualizaciones de aplicaciones",
+        autoUpdate: {
+          label: "Actualizaciones automáticas",
+          description:
+            "Descarga e instala actualizaciones automáticamente. Si se desactiva, se te avisará de las nuevas versiones y podrás instalarlas tú mismo.",
+        },
         readyToInstall: "Listo para instalar:{{version}}",
         installTitle: "Instalar actualización de escritorio",
         installMessage: "Esto actualizaPaseoen esta computadora.",

@@ -81,6 +81,7 @@ describe("desktop-settings", () => {
 
     expect(settings).toEqual({
       releaseChannel: "stable",
+      autoUpdate: true,
       notifications: { playSound: true },
       daemon: {
         manageBuiltInDaemon: true,
@@ -103,6 +104,7 @@ describe("desktop-settings", () => {
 
     expect(next).toEqual({
       releaseChannel: "beta",
+      autoUpdate: true,
       notifications: { playSound: true },
       daemon: {
         manageBuiltInDaemon: true,
@@ -110,6 +112,17 @@ describe("desktop-settings", () => {
       },
     });
     expect(files).toEqual(["desktop-settings.json"]);
+  });
+
+  it("keeps an explicit auto-update choice across restarts", async () => {
+    const userDataPath = await createTempUserDataDir();
+    directories.add(userDataPath);
+
+    await createDesktopSettingsStore({ userDataPath }).patch({ autoUpdate: false });
+
+    const settings = await createDesktopSettingsStore({ userDataPath }).get();
+
+    expect(settings.autoUpdate).toBe(false);
   });
 
   it("defaults notification sounds on for existing settings documents", async () => {
@@ -270,6 +283,7 @@ describe("desktop-settings", () => {
 
     expect(migrated).toEqual({
       releaseChannel: "beta",
+      autoUpdate: true,
       notifications: { playSound: true },
       daemon: {
         manageBuiltInDaemon: false,
@@ -315,6 +329,7 @@ describe("desktop-settings", () => {
     expect(persisted.settings.releaseChannel).toBe("beta");
     expect(next).toEqual({
       releaseChannel: "beta",
+      autoUpdate: true,
       notifications: { playSound: false },
       daemon: { manageBuiltInDaemon: true, keepRunningAfterQuit: false },
     });

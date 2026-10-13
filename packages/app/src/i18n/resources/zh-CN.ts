@@ -124,6 +124,8 @@ export const zhCN: TranslationResources = {
     input: {
       accessibilityLabel: "给 Agent 发消息...",
       terminalAccessibilityLabel: "Terminal prompt",
+      fullscreen: "全屏",
+      exitFullscreen: "退出全屏",
       focusHint: "{{shortcut}} 聚焦",
       addAttachment: "添加附件",
       interruptAgent: "中断 Agent",
@@ -1416,6 +1418,9 @@ export const zhCN: TranslationResources = {
         upToDateWithLastChecked: "已是最新版本。上次检查时间：{{time}}。",
         pending: "更新准备好后会通知你。",
         pendingWithLastChecked: "更新准备好后会通知你。上次检查时间：{{time}}。",
+        pendingNotifyOnly: "发现新版本：{{version}}。自动更新已关闭。",
+        pendingNotifyOnlyWithLastChecked:
+          "发现新版本：{{version}}。自动更新已关闭。上次检查时间：{{time}}。",
         pendingWithVersion: "发现更新：{{version}}。正在下载...",
         pendingWithVersionAndLastChecked:
           "发现更新：{{version}}。正在下载... 上次检查时间：{{time}}。",
@@ -1439,6 +1444,8 @@ export const zhCN: TranslationResources = {
         installingDescription: "正在安装并重启...",
         versionReady: "{{version}} 已准备好安装。",
         newVersionReady: "新版本已准备好安装。",
+        foundNotifyOnly: "{{version}} 已发布。自动更新已关闭。",
+        foundNotifyOnlyNoVersion: "有新版本可用。自动更新已关闭。",
         restartWarning: "升级 app 会停止正在运行的 agents，并关闭 terminal 会话。",
       },
     },
@@ -2201,6 +2208,10 @@ export const zhCN: TranslationResources = {
       },
       updates: {
         label: "应用更新",
+        autoUpdate: {
+          label: "自动更新",
+          description: "自动下载并安装更新。关闭后仍会检测新版本并提醒你，由你手动安装。",
+        },
         readyToInstall: "可安装：{{version}}",
         installTitle: "安装桌面版更新",
         installMessage: "这会更新此电脑上的 Paseo",

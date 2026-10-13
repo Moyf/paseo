@@ -144,7 +144,7 @@ class ElectronAppUpdateRuntime implements AppUpdateRuntime {
   private configured = false;
 
   configure(input: AppUpdateRuntimeConfiguration): void {
-    autoUpdater.autoDownload = true;
+    autoUpdater.autoDownload = input.autoDownload;
     autoUpdater.autoRunAppAfterInstall = true;
     // Paseo revalidates the current manifest before explicitly installing on quit.
     // Electron's built-in handler would install an older download without checking
@@ -246,16 +246,19 @@ export async function checkForAppUpdate({
   currentVersion,
   releaseChannel,
   intent,
+  autoDownload,
 }: {
   currentVersion: string;
   releaseChannel: AppReleaseChannel;
   intent: AppUpdateCheckIntent;
+  autoDownload: boolean;
 }): Promise<AppUpdateCheckResult> {
   updateLifecycleLog.checkStarted({ currentVersion, releaseChannel, intent });
   const result = await appUpdateService.checkForAppUpdate({
     currentVersion,
     releaseChannel,
     intent,
+    autoDownload,
   });
   updateLifecycleLog.checkCompleted({
     currentVersion,
@@ -288,13 +291,16 @@ export async function downloadAndInstallUpdate(
 export async function installAppUpdateOnQuit({
   currentVersion,
   releaseChannel,
+  autoUpdate,
   signal,
 }: {
   currentVersion: string;
   releaseChannel: AppReleaseChannel;
+  autoUpdate: boolean;
   signal: AbortSignal;
 }): Promise<boolean> {
   if (
+    !autoUpdate ||
     !shouldInstallAppUpdateOnQuit({
       platform: process.platform,
       isAppImage: Boolean(process.env.APPIMAGE),
@@ -303,5 +309,10 @@ export async function installAppUpdateOnQuit({
     return false;
   }
 
-  return appUpdateService.installUpdateOnQuit({ currentVersion, releaseChannel, signal });
+  return appUpdateService.installUpdateOnQuit({
+    currentVersion,
+    releaseChannel,
+    autoUpdate,
+    signal,
+  });
 }

@@ -126,6 +126,8 @@ export const fr: TranslationResources = {
     input: {
       accessibilityLabel: "Écrire à l’agent…",
       terminalAccessibilityLabel: "Prompt du terminal",
+      fullscreen: "Plein écran",
+      exitFullscreen: "Quitter le plein écran",
       focusHint: "{{shortcut}} pour saisir",
       addAttachment: "Ajouter une pièce jointe",
       interruptAgent: "Interrompre l’agent",
@@ -1458,6 +1460,10 @@ export const fr: TranslationResources = {
         pending: "Nous vous préviendrons quand la mise à jour sera prête.",
         pendingWithLastChecked:
           "Nous vous préviendrons quand la mise à jour sera prête. Dernière vérification à {{time}}.",
+        pendingNotifyOnly:
+          "Mise à jour trouvée : {{version}}. Les mises à jour automatiques sont désactivées.",
+        pendingNotifyOnlyWithLastChecked:
+          "Mise à jour trouvée : {{version}}. Les mises à jour automatiques sont désactivées. Dernière vérification : {{time}}.",
         pendingWithVersion: "Mise à jour trouvée : {{version}}. Téléchargement…",
         pendingWithVersionAndLastChecked:
           "Mise à jour trouvée : {{version}}. Téléchargement… Dernière vérification à {{time}}.",
@@ -1483,6 +1489,10 @@ export const fr: TranslationResources = {
         installingDescription: "Installation et redémarrage…",
         versionReady: "La version {{version}} est prête à être installée.",
         newVersionReady: "Une nouvelle version est prête à être installée.",
+        foundNotifyOnly:
+          "{{version}} est disponible. Les mises à jour automatiques sont désactivées.",
+        foundNotifyOnlyNoVersion:
+          "Une nouvelle version est disponible. Les mises à jour automatiques sont désactivées.",
         restartWarning:
           "La mise à jour de l’application arrêtera les agents en cours et fermera les sessions de terminal.",
       },
@@ -2276,6 +2286,11 @@ export const fr: TranslationResources = {
       },
       updates: {
         label: "Mises à jour de l’application",
+        autoUpdate: {
+          label: "Mises à jour automatiques",
+          description:
+            "Télécharge et installe les mises à jour automatiquement. Désactivées, vous serez informé des nouvelles versions et pourrez les installer vous-même.",
+        },
         readyToInstall: "Prête à installer : {{version}}",
         installTitle: "Installer la mise à jour de l’app de bureau",
         installMessage: "Paseo sera mis à jour sur cet ordinateur",

@@ -3,6 +3,7 @@ import { i18n } from "@/i18n/i18next";
 
 export type UpdateCalloutBody =
   | { kind: "available"; versionLabel: string | null }
+  | { kind: "found"; versionLabel: string | null }
   | { kind: "installing" }
   | { kind: "error"; message: string };
 
@@ -31,6 +32,7 @@ export interface ResolveUpdateCalloutInput {
   isDesktopApp: boolean;
   status: DesktopAppUpdateStatus;
   isInstalling: boolean;
+  autoUpdate: boolean;
   availableUpdate: { latestVersion?: string | null } | null;
   errorMessage: string | null;
 }
@@ -40,36 +42,75 @@ function formatVersionLabel(latestVersion: string | null | undefined): string | 
   return `v${latestVersion.replace(/^v/i, "")}`;
 }
 
+function buildCalloutTitleBody(input: {
+  isInstalling: boolean;
+  isError: boolean;
+  isNotifyOnly: boolean;
+  latestVersion: string | null;
+  errorMessage: string | null;
+}): { title: string; body: UpdateCalloutBody } {
+  const { isInstalling, isError, isNotifyOnly, latestVersion, errorMessage } = input;
+
+  if (isInstalling) {
+    return {
+      title: i18n.t("desktop.updates.callout.installingTitle"),
+      body: { kind: "installing" },
+    };
+  }
+  if (isError) {
+    return {
+      title: i18n.t("desktop.updates.callout.failedTitle"),
+      body: {
+        kind: "error",
+        message: errorMessage ?? i18n.t("desktop.updates.callout.genericError"),
+      },
+    };
+  }
+  if (isNotifyOnly) {
+    return {
+      title: i18n.t("desktop.updates.callout.availableTitle"),
+      body: { kind: "found", versionLabel: formatVersionLabel(latestVersion) },
+    };
+  }
+  return {
+    title: i18n.t("desktop.updates.callout.availableTitle"),
+    body: { kind: "available", versionLabel: formatVersionLabel(latestVersion) },
+  };
+}
+
 export function resolveUpdateCalloutDescriptor(
   input: ResolveUpdateCalloutInput,
 ): UpdateCalloutDescriptor | null {
   if (!input.isDesktopApp) return null;
-  if (input.status !== "available" && input.status !== "installing" && input.status !== "error") {
+
+  // With auto-update off the found update is never downloaded, so it stays
+  // "pending" — surface that as the reminder instead of staying silent.
+  const isNotifyOnlyFound =
+    !input.autoUpdate && input.status === "pending" && input.availableUpdate != null;
+  const isRemindable =
+    input.status === "available" ||
+    input.status === "installing" ||
+    input.status === "error" ||
+    isNotifyOnlyFound;
+  if (!isRemindable) {
     return null;
   }
 
   const isError = input.status === "error";
   const isInstalling = input.isInstalling;
-  const isAvailable = !isInstalling && !isError;
+  const isNotifyOnly = isNotifyOnlyFound && !isInstalling;
+  const isAvailable = !isInstalling && !isError && !isNotifyOnly;
 
   const latestVersion = input.availableUpdate?.latestVersion ?? null;
   const dismissalKey = `desktop-update:${input.status}:${latestVersion ?? "unknown"}`;
 
-  let title: string;
-  let body: UpdateCalloutBody;
-  if (isInstalling) {
-    title = i18n.t("desktop.updates.callout.installingTitle");
-    body = { kind: "installing" };
-  } else if (isError) {
-    title = i18n.t("desktop.updates.callout.failedTitle");
-    body = {
-      kind: "error",
-      message: input.errorMessage ?? i18n.t("desktop.updates.callout.genericError"),
-    };
-  } else {
-    title = i18n.t("desktop.updates.callout.availableTitle");
-    body = { kind: "available", versionLabel: formatVersionLabel(latestVersion) };
-  }
+  const { title, body } = buildCalloutTitleBody({
+    isInstalling,
+    isError,
+    isNotifyOnly,
+    latestVersion,
+    errorMessage: input.errorMessage,
+  });
 
   const actions: UpdateCalloutActionDescriptor[] = [
     { role: "changelog", label: i18n.t("desktop.updates.callout.whatsNew") },
@@ -93,7 +134,7 @@ export function resolveUpdateCalloutDescriptor(
     priority: 200,
     title,
     body,
-    showGiftIcon: isAvailable,
+    showGiftIcon: isAvailable || isNotifyOnly,
     variant: isError ? "error" : "default",
     actions,
     testID: "update-callout",
