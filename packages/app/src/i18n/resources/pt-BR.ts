@@ -1458,6 +1458,10 @@ export const ptBR: TranslationResources = {
         pending: "Avisaremos quando a atualização estiver pronta.",
         pendingWithLastChecked:
           "Avisaremos quando a atualização estiver pronta. Última verificação às {{time}}.",
+        pendingNotifyOnly:
+          "Atualização encontrada: {{version}}. As atualizações automáticas estão desativadas.",
+        pendingNotifyOnlyWithLastChecked:
+          "Atualização encontrada: {{version}}. As atualizações automáticas estão desativadas. Última verificação: {{time}}.",
         pendingWithVersion: "Atualização encontrada: {{version}}. Baixando...",
         pendingWithVersionAndLastChecked:
           "Atualização encontrada: {{version}}. Baixando... Última verificação às {{time}}.",
@@ -1483,6 +1487,10 @@ export const ptBR: TranslationResources = {
         installingDescription: "Instalando e reiniciando...",
         versionReady: "{{version}} está pronta para instalar.",
         newVersionReady: "Uma nova versão está pronta para instalar.",
+        foundNotifyOnly:
+          "{{version}} está disponível. As atualizações automáticas estão desativadas.",
+        foundNotifyOnlyNoVersion:
+          "Uma nova versão está disponível. As atualizações automáticas estão desativadas.",
         restartWarning:
           "Atualizar o app vai interromper agentes em execução e fechar sessões de terminal.",
       },
@@ -2263,6 +2271,11 @@ export const ptBR: TranslationResources = {
       },
       updates: {
         label: "Atualizações do app",
+        autoUpdate: {
+          label: "Atualizações automáticas",
+          description:
+            "Baixa e instala atualizações automaticamente. Quando desativado, você será avisado sobre novas versões e poderá instalá-las manualmente.",
+        },
         readyToInstall: "Pronta para instalar: {{version}}",
         installTitle: "Instalar atualização desktop",
         installMessage: "Isso atualiza o Paseo neste computador",

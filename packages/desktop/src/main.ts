@@ -1042,6 +1042,7 @@ const quitLifecycle = createQuitLifecycle({
     return installAppUpdateOnQuit({
       currentVersion: app.getVersion(),
       releaseChannel: settings.releaseChannel,
+      autoUpdate: settings.autoUpdate,
       signal,
     });
   },

@@ -21,6 +21,15 @@ const CHECK_INTERVAL_MS = 30 * 60 * 1000;
 function renderBody(body: UpdateCalloutBody, t: ReturnType<typeof useTranslation>["t"]): ReactNode {
   if (body.kind === "installing") return t("desktop.updates.callout.installingDescription");
   if (body.kind === "error") return body.message;
+  if (body.kind === "found") {
+    return (
+      <SidebarCalloutDescriptionText>
+        {body.versionLabel
+          ? t("desktop.updates.callout.foundNotifyOnly", { version: body.versionLabel })
+          : t("desktop.updates.callout.foundNotifyOnlyNoVersion")}
+      </SidebarCalloutDescriptionText>
+    );
+  }
   return <UpdateAvailableDescription versionLabel={body.versionLabel ?? undefined} t={t} />;
 }
 
@@ -42,6 +51,7 @@ export function UpdateCalloutSource() {
   const { theme } = useUnistyles();
   const {
     isDesktopApp,
+    autoUpdate,
     status,
     availableUpdate,
     errorMessage,
@@ -78,6 +88,7 @@ export function UpdateCalloutSource() {
       isDesktopApp,
       status,
       isInstalling,
+      autoUpdate,
       availableUpdate,
       errorMessage,
     });
@@ -101,6 +112,7 @@ export function UpdateCalloutSource() {
       testID: descriptor.testID,
     });
   }, [
+    autoUpdate,
     availableUpdate,
     callouts,
     errorMessage,

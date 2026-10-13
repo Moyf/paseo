@@ -90,6 +90,7 @@ import { IntegrationsSection } from "@/desktop/components/integrations-section";
 import { isElectronRuntime } from "@/desktop/host";
 import { useDesktopAppUpdater } from "@/desktop/updates/use-desktop-app-updater";
 import { formatVersionWithPrefix } from "@/desktop/updates/desktop-updates";
+import { useDesktopSettings } from "@/desktop/settings/desktop-settings";
 import { resolveAppVersion } from "@/utils/app-version";
 import { openChangelog } from "@/changelog";
 import { useAppDiagnosticStore } from "@/diagnostics/store";
@@ -600,6 +601,7 @@ function getUpdateButtonLabel(
 
 function DesktopAppUpdateRow() {
   const { t } = useTranslation();
+  const { settings: desktopSettings, updateSettings: updateDesktopSettings } = useDesktopSettings();
   const { settings, updateSettings } = useSettings();
   const {
     isDesktopApp,
@@ -634,6 +636,14 @@ function DesktopAppUpdateRow() {
       void updateSettings({ releaseChannel });
     },
     [updateSettings],
+  );
+  const handleAutoUpdateChange = useCallback(
+    (autoUpdate: boolean) => {
+      void updateDesktopSettings({ autoUpdate }).catch(() => {
+        // useDesktopSettings owns the user-visible IPC error.
+      });
+    },
+    [updateDesktopSettings],
   );
   const releaseChannelOptions = useMemo(
     () => [
@@ -691,6 +701,21 @@ function DesktopAppUpdateRow() {
           value={settings.releaseChannel}
           onValueChange={handleReleaseChannelChange}
           options={releaseChannelOptions}
+        />
+      </View>
+      <View style={[settingsStyles.row, settingsStyles.rowBorder]}>
+        <View style={settingsStyles.rowContent}>
+          <Text style={settingsStyles.rowTitle}>
+            {t("settings.about.updates.autoUpdate.label")}
+          </Text>
+          <Text style={settingsStyles.rowHint}>
+            {t("settings.about.updates.autoUpdate.description")}
+          </Text>
+        </View>
+        <Switch
+          value={desktopSettings.autoUpdate}
+          onValueChange={handleAutoUpdateChange}
+          accessibilityLabel={t("settings.about.updates.autoUpdate.label")}
         />
       </View>
       <View style={[settingsStyles.row, settingsStyles.rowBorder]}>

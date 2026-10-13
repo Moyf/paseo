@@ -1438,6 +1438,9 @@ export const ko: TranslationResources = {
         pending: "업데이트가 준비되면 알려드리겠습니다.",
         pendingWithLastChecked:
           "업데이트가 준비되면 알려드리겠습니다. {{time}}에서 마지막으로 확인했습니다.",
+        pendingNotifyOnly: "업데이트 발견: {{version}}. 자동 업데이트가 꺼져 있습니다.",
+        pendingNotifyOnlyWithLastChecked:
+          "업데이트 발견: {{version}}. 자동 업데이트가 꺼져 있습니다. 마지막 확인: {{time}}.",
         pendingWithVersion: "업데이트 발견: {{version}}. 다운로드 중...",
         pendingWithVersionAndLastChecked:
           "업데이트 발견: {{version}}. 다운로드 중... {{time}}에서 마지막으로 확인했습니다.",
@@ -1463,6 +1466,8 @@ export const ko: TranslationResources = {
         installingDescription: "설치 후 재시작 중...",
         versionReady: "{{version}} 설치가 준비되었습니다.",
         newVersionReady: "새 버전 설치가 준비되었습니다.",
+        foundNotifyOnly: "{{version}} 버전을 사용할 수 있습니다. 자동 업데이트가 꺼져 있습니다.",
+        foundNotifyOnlyNoVersion: "새 버전을 사용할 수 있습니다. 자동 업데이트가 꺼져 있습니다.",
         restartWarning: "앱을 업그레이드하면 실행 중인 에이전트가 중지되고 터미널 세션이 닫힙니다.",
       },
     },
@@ -2239,6 +2244,11 @@ export const ko: TranslationResources = {
       },
       updates: {
         label: "앱 업데이트",
+        autoUpdate: {
+          label: "자동 업데이트",
+          description:
+            "업데이트를 자동으로 다운로드하고 설치합니다. 끄면 새 버전을 알려주기만 하며, 직접 설치할 수 있습니다.",
+        },
         readyToInstall: "설치 준비됨: {{version}}",
         installTitle: "데스크톱 업데이트 설치",
         installMessage: "이 컴퓨터의 Paseo를 업데이트합니다",

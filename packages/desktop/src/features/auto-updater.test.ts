@@ -62,6 +62,7 @@ describe("checkForAppUpdate", () => {
       currentVersion: "1.2.3",
       releaseChannel: "stable",
       intent: "manual",
+      autoDownload: false,
     });
 
     expect(result).toEqual({
@@ -90,6 +91,7 @@ describe("checkForAppUpdate", () => {
       currentVersion: "1.2.3",
       releaseChannel: "stable",
       intent: "manual",
+      autoDownload: true,
     });
 
     expect(result.errorMessage).toBe("network down");

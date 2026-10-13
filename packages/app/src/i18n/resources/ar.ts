@@ -1431,6 +1431,9 @@ export const ar: TranslationResources = {
         upToDateWithLastChecked: "Up to date. Last checked at {{time}}.",
         pending: "سنخبرك عندما يصبح التحديث جاهزًا.",
         pendingWithLastChecked: "سنخبرك عندما يصبح التحديث جاهزًا. آخر فحص في {{time}}.",
+        pendingNotifyOnly: "تم العثور على تحديث: {{version}}. التحديثات التلقائية متوقفة.",
+        pendingNotifyOnlyWithLastChecked:
+          "تم العثور على تحديث: {{version}}. التحديثات التلقائية متوقفة. آخر فحص في {{time}}.",
         pendingWithVersion: "تم العثور على تحديث: {{version}}. جارٍ التنزيل...",
         pendingWithVersionAndLastChecked:
           "تم العثور على تحديث: {{version}}. جارٍ التنزيل... آخر فحص في {{time}}.",
@@ -1454,6 +1457,8 @@ export const ar: TranslationResources = {
         installingDescription: "التثبيت وإعادة التشغيل...",
         versionReady: "{{version}}جاهز للتثبيت.",
         newVersionReady: "إصدار جديد جاهز للتثبيت.",
+        foundNotifyOnly: "‏{{version}} متاح. التحديثات التلقائية متوقفة.",
+        foundNotifyOnlyNoVersion: "إصدار جديد متاح. التحديثات التلقائية متوقفة.",
         restartWarning: "ستؤدي ترقية التطبيق إلى إيقاف تشغيل الوكلاء وإغلاق الجلسات الطرفية.",
       },
     },
@@ -2228,6 +2233,11 @@ export const ar: TranslationResources = {
       },
       updates: {
         label: "تحديثات التطبيق",
+        autoUpdate: {
+          label: "التحديثات التلقائية",
+          description:
+            "تنزيل التحديثات وتثبيتها تلقائيًا. عند الإيقاف، سنُعلمك بالإصدارات الجديدة ويمكنك تثبيتها بنفسك.",
+        },
         readyToInstall: "جاهز للتثبيت:{{version}}",
         installTitle: "تثبيت تحديث سطح المكتب",
         installMessage: "يؤدي هذا إلى تحديث Paseo على هذا الكمبيوتر",

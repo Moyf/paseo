@@ -1456,6 +1456,9 @@ export const en = {
         pending: "We'll let you know when the update is ready.",
         pendingWithLastChecked:
           "We'll let you know when the update is ready. Last checked at {{time}}.",
+        pendingNotifyOnly: "Update found: {{version}}. Automatic updates are off.",
+        pendingNotifyOnlyWithLastChecked:
+          "Update found: {{version}}. Automatic updates are off. Last checked at {{time}}.",
         pendingWithVersion: "Update found: {{version}}. Downloading...",
         pendingWithVersionAndLastChecked:
           "Update found: {{version}}. Downloading... Last checked at {{time}}.",
@@ -1479,6 +1482,8 @@ export const en = {
         installingDescription: "Installing and restarting...",
         versionReady: "{{version}} is ready to install.",
         newVersionReady: "A new version is ready to install.",
+        foundNotifyOnly: "{{version}} is available. Automatic updates are off.",
+        foundNotifyOnlyNoVersion: "A new version is available. Automatic updates are off.",
         restartWarning: "Upgrading the app will stop running agents and close terminal sessions.",
       },
     },
@@ -2353,6 +2358,11 @@ export const en = {
       updates: {
         label: "App updates",
         readyToInstall: "Ready to install: {{version}}",
+        autoUpdate: {
+          label: "Automatic updates",
+          description:
+            "Download and install updates automatically. When off, you'll be notified about new versions and can install them yourself.",
+        },
         installTitle: "Install desktop update",
         installMessage: "This updates Paseo on this computer",
         installConfirm: "Install update",

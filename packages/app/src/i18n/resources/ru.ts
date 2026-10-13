@@ -1452,6 +1452,9 @@ export const ru: TranslationResources = {
         pending: "Мы сообщим вам, когда обновление будет готово.",
         pendingWithLastChecked:
           "Мы сообщим вам, когда обновление будет готово. Последняя проверка в {{time}}.",
+        pendingNotifyOnly: "Найдено обновление: {{version}}. Автоматические обновления отключены.",
+        pendingNotifyOnlyWithLastChecked:
+          "Найдено обновление: {{version}}. Автоматические обновления отключены. Последняя проверка: {{time}}.",
         pendingWithVersion: "Найдено обновление: {{version}}. Загрузка...",
         pendingWithVersionAndLastChecked:
           "Найдено обновление: {{version}}. Загрузка... Последняя проверка в {{time}}.",
@@ -1477,6 +1480,8 @@ export const ru: TranslationResources = {
         installingDescription: "Установка и перезапуск...",
         versionReady: "Версия {{version}} готова к установке.",
         newVersionReady: "Новая версия готова к установке.",
+        foundNotifyOnly: "Доступна версия {{version}}. Автоматические обновления отключены.",
+        foundNotifyOnlyNoVersion: "Доступна новая версия. Автоматические обновления отключены.",
         restartWarning:
           "При обновлении приложения работающие агенты будут остановлены, а сеансы терминала закрыты.",
       },
@@ -2266,6 +2271,11 @@ export const ru: TranslationResources = {
       },
       updates: {
         label: "Обновления приложения",
+        autoUpdate: {
+          label: "Автоматические обновления",
+          description:
+            "Скачивать и устанавливать обновления автоматически. Если выключено, вы получите уведомление о новой версии и сможете установить её сами.",
+        },
         readyToInstall: "Версия {{version}} готова к установке",
         installTitle: "Установить обновление настольного приложения",
         installMessage: "Это обновит Paseo на этом компьютере.",
