@@ -60,8 +60,8 @@ import { usePanelStore } from "@/stores/panel-store";
 import { useOwnsWindowChromeCorner, WindowChromeSafeArea } from "@/utils/desktop-window";
 import { useCloseAgentListGesture } from "@/mobile-panels/gestures";
 import { MobilePanelOverlay } from "@/mobile-panels/presentation";
-import { buildSettingsAddHostRoute, buildSettingsRoute } from "@/utils/host-routes";
-import { openHostOverview } from "@/navigation/settings-navigation";
+import { buildSettingsAddHostRoute } from "@/utils/host-routes";
+import { openHostOverview, openSettings } from "@/navigation/settings-navigation";
 import {
   UsageSidebarItem,
   UsageSidebarRoot,
@@ -174,11 +174,11 @@ export const LeftSidebar = memo(function LeftSidebar({ active }: { active: boole
 
   const handleSettingsMobile = useCallback(() => {
     showMobileAgent();
-    router.push(buildSettingsRoute());
+    openSettings();
   }, [showMobileAgent]);
 
   const handleSettingsDesktop = useCallback(() => {
-    router.push(buildSettingsRoute());
+    openSettings();
   }, []);
 
   const handleAddHostMobile = useCallback(() => {
