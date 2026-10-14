@@ -1,20 +1,16 @@
 import type { TerminalOpenLocation } from "@/hooks/use-settings";
+import type { TerminalTabDestination } from "@/screens/workspace/terminals/use-workspace-terminals";
 import {
   useWorkspaceLayoutStore,
   type WorkspaceTabPlacement,
 } from "@/stores/workspace-layout-store";
-
-/** The destination a terminal creation arrived with, structurally matching TerminalTabDestination. */
-export type TerminalCreationDestination =
-  | { kind: "open"; paneId?: string }
-  | { kind: "replace"; tabId: string };
 
 interface ResolveImplicitTerminalPlacementInput {
   isCompact: boolean;
   supportsPaneSplits: boolean;
   persistenceKey: string | null;
   location: TerminalOpenLocation;
-  destination: TerminalCreationDestination;
+  destination: TerminalTabDestination;
 }
 
 /**
