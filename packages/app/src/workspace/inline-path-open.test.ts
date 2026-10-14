@@ -28,6 +28,25 @@ describe("planInlinePathOpen", () => {
     });
   });
 
+  it("keeps the lexical directory when a folder link carries one", () => {
+    expect(
+      planInlinePathOpen({ file: undefined, directory: "docs", workspaceRoot: "/repo" }),
+    ).toEqual({ kind: "directory", directoryPath: "docs" });
+    expect(
+      planInlinePathOpen({
+        file: undefined,
+        directory: "C:/external/reports",
+        workspaceRoot: "/repo",
+      }),
+    ).toEqual({ kind: "directory", directoryPath: "C:/external/reports" });
+  });
+
+  it("falls back to the root when a folder link carries no directory", () => {
+    expect(
+      planInlinePathOpen({ file: undefined, directory: "  ", workspaceRoot: "/repo" }),
+    ).toEqual({ kind: "directory", directoryPath: "." });
+  });
+
   it("probes extension-less workspace-relative paths against the workspace root", () => {
     expect(
       planInlinePathOpen({ file: "packages/app/moys-asr-workflow", workspaceRoot: "/repo" }),
@@ -68,6 +87,31 @@ describe("planInlinePathOpen", () => {
       relativePath: "paseo-token-lease",
       underWorkspace: false,
     });
+  });
+
+  it("probes dotted external folders instead of trusting the extension heuristic", () => {
+    expect(
+      planInlinePathOpen({ file: "C:/external/reports.v1", workspaceRoot: "C:/repo" }),
+    ).toEqual({
+      kind: "probe",
+      root: "C:/external",
+      relativePath: "reports.v1",
+      underWorkspace: false,
+    });
+    expect(
+      planInlinePathOpen({ file: "C:\\external\\reports.v1\\", workspaceRoot: "C:/repo" }),
+    ).toEqual({
+      kind: "probe",
+      root: "C:/external",
+      relativePath: "reports.v1",
+      underWorkspace: false,
+    });
+  });
+
+  it("keeps the extension shortcut for files inside the workspace only", () => {
+    expect(
+      planInlinePathOpen({ file: "/repo/reports.v1/data.txt", workspaceRoot: "/repo" }),
+    ).toEqual({ kind: "file" });
   });
 
   it("opens extension-less paths directly as files when there is no workspace root", () => {

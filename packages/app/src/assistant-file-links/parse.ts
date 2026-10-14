@@ -755,17 +755,6 @@ function resolveRelativePathUnderRoot(pathValue: string, workspaceRoot: string):
 
   const root = workspaceRoot.replace(/\/+$/, "") || "/";
   const pathSegments = normalizedPath.split("/");
-  // Agents often prefix workspace-relative paths with the workspace folder's own name
-  // ("civil-rhino/docs/x.html" while working inside "civil-rhino"), which resolves to a
-  // path that does not exist. Drop that redundant leading segment.
-  const rootFolderName = root === "/" ? null : (root.split("/").pop() ?? null);
-  if (
-    rootFolderName &&
-    pathSegments.length > 1 &&
-    pathSegments[0]?.toLowerCase() === rootFolderName.toLowerCase()
-  ) {
-    pathSegments.shift();
-  }
   const resolvedSegments: string[] = [];
   for (const segment of pathSegments) {
     if (!segment || segment === ".") {

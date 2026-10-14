@@ -504,18 +504,23 @@ const AgentStreamViewComponent = forwardRef<AgentStreamViewHandle, AgentStreamVi
 
         const revealInFileManager = (absolutePath: string) => {
           if (!fileManagerTarget) {
-            openFileLocation();
+            // Outside the workspace there is no file tab to fall back to for a folder;
+            // say so instead of doing nothing.
+            toast?.error(t("workspace.fileExplorer.errors.externalFolderUnavailable"));
             return;
           }
           void openDesktopTarget({
             editorId: fileManagerTarget.id,
             workspacePath: workspaceRoot,
             filePath: toNativeAbsolutePath(absolutePath),
-          }).catch(() => openFileLocation());
+          }).catch(() => {
+            toast?.error(t("workspace.fileExplorer.errors.revealFailed"));
+          });
         };
 
         const plan = planInlinePathOpen({
           file: normalized.file,
+          directory: normalized.directory,
           lineStart: target.lineStart,
           workspaceRoot,
         });

@@ -21,6 +21,7 @@ import {
   type TerminalInputModeState,
 } from "@getpaseo/protocol/terminal-input-mode";
 import { useTranslation } from "react-i18next";
+import { useToast } from "@/contexts/toast-context";
 import { useHostRuntimeClient, useHostRuntimeIsConnected } from "@/runtime/host-runtime";
 import { useKeyboardShiftStyle } from "@/keyboard/shift";
 import { useAppActivelyVisible } from "@/hooks/use-app-visible";
@@ -243,6 +244,7 @@ export function TerminalPane({
   onOpenWorkspaceFile,
 }: TerminalPaneProps) {
   const { t } = useTranslation();
+  const toast = useToast();
   const retainedPanelActive = useRetainedPanelActive();
   const isAppActivelyVisible = useAppActivelyVisible();
   const { theme } = useUnistyles();
@@ -982,14 +984,18 @@ export function TerminalPane({
 
       const revealInFileManager = (absolutePath: string) => {
         if (!fileManagerTarget) {
-          openAsFile();
+          // Outside the workspace there is no file tab to fall back to for a folder;
+          // say so instead of doing nothing.
+          toast.error(t("workspace.fileExplorer.errors.externalFolderUnavailable"));
           return;
         }
         void openDesktopTarget({
           editorId: fileManagerTarget.id,
           workspacePath: cwd,
           filePath: toNativeAbsolutePath(absolutePath),
-        }).catch(openAsFile);
+        }).catch(() => {
+          toast.error(t("workspace.fileExplorer.errors.revealFailed"));
+        });
       };
 
       const plan = planInlinePathOpen({
@@ -1014,6 +1020,8 @@ export function TerminalPane({
       onOpenWorkspaceFile,
       requestDirectoryListing,
       serverId,
+      t,
+      toast,
       workspaceId,
     ],
   );
