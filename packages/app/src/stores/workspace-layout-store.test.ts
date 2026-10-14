@@ -22,6 +22,7 @@ import { defaultChangesState, type ChangesState } from "@/panels/changes/state";
 import { defaultFileState, type FileState } from "@/panels/file/state";
 import {
   canDismissPaneInLayout,
+  clampChildFractionInSizes,
   collectAllPanes,
   collectAllTabs,
   createWorkspaceLayoutStore,
@@ -4456,34 +4457,18 @@ describe("workspace-layout-store actions", () => {
     expect(workspaceLayoutStore.getState().layoutByWorkspace[workspaceKey]).toBe(before);
   });
 
-  it("clamps a resized bottom dock at half the column and hands the excess back", () => {
-    const workspaceKey = createWorkspaceKey();
-    const store = workspaceLayoutStore.getState();
-    workspaceLayoutIds.useValues(["dock-pane", "dock-group"]);
-    const dockPaneId = store.ensureBottomPane(workspaceKey) as string;
-    const dockGroupId = expectGroup(
-      workspaceLayoutStore.getState().layoutByWorkspace[workspaceKey].root,
-    ).group.id;
-
-    store.resizeSplit(workspaceKey, dockGroupId, [0.2, 0.8]);
-
+  it("caps a child fraction and hands the excess back share by share", () => {
     expect(
-      workspaceLayoutStore.getState().splitSizesByWorkspace[workspaceKey][dockGroupId],
-    ).toEqual([0.5, 0.5]);
-    expect(workspaceLayoutStore.getState().bottomPaneIdByWorkspace[workspaceKey]).toBe(dockPaneId);
+      clampChildFractionInSizes({ sizes: [0.3, 0.7], childIndex: 1, maxFraction: 0.25 }),
+    ).toEqual([0.75, 0.25]);
+    expect(
+      clampChildFractionInSizes({ sizes: [0.2, 0.6, 0.2], childIndex: 1, maxFraction: 0.3 }),
+    ).toEqual([0.35, 0.3, 0.35]);
   });
 
-  it("resizes a group without the dock untouched", () => {
-    const workspaceKey = createWorkspaceKey();
-    const store = workspaceLayoutStore.getState();
-    workspaceLayoutIds.useValues(["dock-pane", "dock-group"]);
-    store.ensureBottomPane(workspaceKey);
-
-    store.resizeSplit(workspaceKey, "unrelated-group", [0.9, 0.1]);
-
-    expect(
-      workspaceLayoutStore.getState().splitSizesByWorkspace[workspaceKey]["unrelated-group"],
-    ).toEqual([0.9, 0.1]);
+  it("leaves children under the cap untouched", () => {
+    const sizes = [0.8, 0.2];
+    expect(clampChildFractionInSizes({ sizes, childIndex: 1, maxFraction: 0.5 })).toBe(sizes);
   });
 
   it("clears the remembered dock when its pane closes and re-docks on the next open", () => {
