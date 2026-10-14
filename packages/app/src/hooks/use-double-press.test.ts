@@ -1,11 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
-import { createSidebarRowPressHandler } from "./use-sidebar-row-double-press";
+import { createDoublePressHandler } from "./use-double-press";
 
-describe("createSidebarRowPressHandler", () => {
+describe("createDoublePressHandler", () => {
   it("calls onPress for a single press", () => {
     const onPress = vi.fn();
     const onRename = vi.fn();
-    const handler = createSidebarRowPressHandler({ onPress, onRename, now: () => 1000 });
+    const handler = createDoublePressHandler({ onPress, onRename, now: () => 1000 });
 
     handler();
 
@@ -17,7 +17,7 @@ describe("createSidebarRowPressHandler", () => {
     const onPress = vi.fn();
     const onRename = vi.fn();
     let now = 1000;
-    const handler = createSidebarRowPressHandler({ onPress, onRename, now: () => now });
+    const handler = createDoublePressHandler({ onPress, onRename, now: () => now });
 
     handler();
     now = 1200;
@@ -31,7 +31,7 @@ describe("createSidebarRowPressHandler", () => {
     const onPress = vi.fn();
     const onRename = vi.fn();
     let now = 1000;
-    const handler = createSidebarRowPressHandler({ onPress, onRename, now: () => now });
+    const handler = createDoublePressHandler({ onPress, onRename, now: () => now });
 
     handler();
     now = 1400;
@@ -45,7 +45,7 @@ describe("createSidebarRowPressHandler", () => {
     const onPress = vi.fn();
     const onRename = vi.fn();
     let now = 1000;
-    const handler = createSidebarRowPressHandler({ onPress, onRename, now: () => now });
+    const handler = createDoublePressHandler({ onPress, onRename, now: () => now });
 
     handler();
     now = 1100;
@@ -60,7 +60,7 @@ describe("createSidebarRowPressHandler", () => {
   it("falls through to onPress when rename is unavailable", () => {
     const onPress = vi.fn();
     let now = 1000;
-    const handler = createSidebarRowPressHandler({ onPress, now: () => now });
+    const handler = createDoublePressHandler({ onPress, now: () => now });
 
     handler();
     now = 1100;
@@ -74,7 +74,7 @@ describe("createSidebarRowPressHandler", () => {
     const onRename = vi.fn();
     const didLongPressRef = { current: false };
     let now = 1000;
-    const handler = createSidebarRowPressHandler({
+    const handler = createDoublePressHandler({
       onPress,
       onRename,
       didLongPressRef,
