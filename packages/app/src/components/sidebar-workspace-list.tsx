@@ -36,7 +36,8 @@ import type { SidebarSurfaceBackdrop } from "@/styles/surface-backdrop";
 import { getSidebarRowBackdrop } from "@/components/sidebar/sidebar-row-backdrop";
 import {
   captureWorkspaceRowPointerModifiers,
-  consumeWorkspaceRowPressIntent,
+  consumeWorkspaceRowPointerUpIntent,
+  consumeWorkspaceRowPressSuppression,
 } from "@/components/sidebar/press-modifiers";
 import type { SidebarSelectionTarget } from "@/stores/sidebar-selection-store";
 import { useSidebarSelectionStore } from "@/stores/sidebar-selection-store";
@@ -1063,7 +1064,7 @@ function ProjectHeaderRow({
   );
 }
 
-function WorkspaceRowInner({
+export function WorkspaceRowInner({
   workspace,
   hostBadge,
   leadingProjectName,
@@ -1114,21 +1115,28 @@ function WorkspaceRowInner({
       interaction.didLongPressRef.current = false;
       return;
     }
-    // Web only: react-native-web press events carry no modifiers, so the pointerdown snapshot
-    // decides. A modifier press never navigates — it edits the multi-selection instead, and a
-    // plain press navigates and clears whatever selection was building.
+    // Web only: modifier presses were already applied at pointerup (the responder system never
+    // delivers Ctrl clicks as presses), and the suppression flag says this press is one of them.
+    // A plain press navigates, clears the selection, and becomes the next range anchor.
     if (platformIsWeb) {
-      const intent = consumeWorkspaceRowPressIntent();
-      if (intent) {
-        useSidebarSelectionStore.getState().handleSelectPress(toSidebarSelectionTarget(workspace), {
-          range: intent.kind === "range",
-        });
+      if (consumeWorkspaceRowPressSuppression()) {
         return;
       }
-      useSidebarSelectionStore.getState().clear();
+      useSidebarSelectionStore.getState().handleNavigatePress(toSidebarSelectionTarget(workspace));
     }
     onPress();
   }, [interaction.didLongPressRef, onPress, workspace]);
+  const handleRowPointerUp = useCallback(() => {
+    if (!platformIsWeb) {
+      return;
+    }
+    const intent = consumeWorkspaceRowPointerUpIntent();
+    if (intent) {
+      useSidebarSelectionStore.getState().handleSelectPress(toSidebarSelectionTarget(workspace), {
+        range: intent.kind === "range",
+      });
+    }
+  }, [workspace]);
   const handleWorkspacePressIn = useCallback(
     (event: GestureResponderEvent) => {
       setIsPressed(true);
@@ -1169,6 +1177,7 @@ function WorkspaceRowInner({
             ref={dragHandleProps?.setActivatorNodeRef as unknown as Ref<View>}
             style={styles.workspaceRowContainer}
             onPointerDown={captureWorkspaceRowPointerModifiers}
+            onPointerUp={handleRowPointerUp}
             {...hoverHandlers}
           >
             <SidebarWorkspaceContextMenu

@@ -111,6 +111,25 @@ describe("useSidebarSelectionStore", () => {
     expect(state.anchorKey).toBeNull();
   });
 
+  it("a plain navigation press clears the selection but keeps itself as the range anchor", () => {
+    const store = useSidebarSelectionStore.getState();
+    store.handleSelectPress(target("a"), { range: false });
+    store.handleSelectPress(target("c"), { range: true });
+    expect(useSidebarSelectionStore.getState().selected.length).toBe(3);
+
+    // The user plain-clicks row d — it navigates, drops the selection, and the next shift press
+    // extends from d rather than from nothing.
+    useSidebarSelectionStore.getState().handleNavigatePress(target("d", "s2"));
+    const state = useSidebarSelectionStore.getState();
+    expect(state.selected).toEqual([]);
+    expect(state.anchorKey).toBe("s2:d");
+
+    useSidebarSelectionStore.getState().handleSelectPress(target("b"), { range: true });
+    expect(useSidebarSelectionStore.getState().selected.map((entry) => entry.workspaceKey)).toEqual(
+      ["s1:b", "s1:c", "s2:d"],
+    );
+  });
+
   it("clear empties the selection and the anchor", () => {
     const store = useSidebarSelectionStore.getState();
     store.handleSelectPress(target("a"), { range: false });
