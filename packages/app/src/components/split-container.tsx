@@ -986,9 +986,11 @@ function SplitNodeView({
         )
       : -1;
   // A fraction cap would grow with tall windows, so the dock's ceiling is measured in
-  // pixels against this group's rendered size and applied to display, preview, and commit alike.
+  // pixels against this group's rendered size and applied to display, preview, and commit
+  // alike. Vertical groups only: splitting the dock left or right puts it in a horizontal
+  // group whose width must stay uncapped.
   const maxDockFraction =
-    dockChildIndex >= 0 && groupContainerSize > 0
+    dockChildIndex >= 0 && groupDirection === "vertical" && groupContainerSize > 0
       ? BOTTOM_DOCK_MAX_HEIGHT_PX / groupContainerSize
       : null;
   const clampDockSizes = useCallback(
