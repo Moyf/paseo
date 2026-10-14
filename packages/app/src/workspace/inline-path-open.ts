@@ -25,13 +25,15 @@ export type InlinePathOpenPlan =
  */
 export function planInlinePathOpen(input: {
   file?: string;
+  /** The destination for a lexical folder link; unset falls back to the workspace root. */
+  directory?: string;
   lineStart?: number;
   workspaceRoot: string;
 }): InlinePathOpenPlan {
-  const { file, lineStart, workspaceRoot } = input;
+  const { file, directory, lineStart, workspaceRoot } = input;
   if (!file) {
     // Lexical directory: a trailing slash, ".", or the workspace root itself.
-    return { kind: "directory", directoryPath: "." };
+    return { kind: "directory", directoryPath: directory?.trim() ? directory : "." };
   }
   if (!file.trim() || lineStart !== undefined || hasFileExtension(file)) {
     return { kind: "file" };
