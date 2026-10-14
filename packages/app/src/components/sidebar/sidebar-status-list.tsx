@@ -64,7 +64,8 @@ import { useOpenKebabMenuVisibility } from "@/components/sidebar/use-open-kebab-
 import { getSidebarRowBackdrop } from "@/components/sidebar/sidebar-row-backdrop";
 import {
   captureWorkspaceRowPointerModifiers,
-  consumeWorkspaceRowPressIntent,
+  consumeWorkspaceRowPointerUpIntent,
+  consumeWorkspaceRowPressSuppression,
 } from "@/components/sidebar/press-modifiers";
 import type { SidebarSelectionTarget } from "@/stores/sidebar-selection-store";
 import { useSidebarSelectionStore } from "@/stores/sidebar-selection-store";
@@ -854,23 +855,37 @@ function StatusWorkspaceRowInnerContent({
     didLongPressRef,
   });
   const handlePress = useCallback(() => {
+    // Same rule as project mode: modifier presses were applied at pointerup (suppression says
+    // this synthesized press is one of them); a plain press navigates, clears the selection,
+    // and becomes the next range anchor.
     if (platformIsWeb) {
-      const intent = consumeWorkspaceRowPressIntent();
-      if (intent) {
-        useSidebarSelectionStore.getState().handleSelectPress(
-          {
-            serverId: workspace.serverId,
-            workspaceId: workspace.workspaceId,
-            workspaceKey: workspace.workspaceKey,
-          },
-          { range: intent.kind === "range" },
-        );
+      if (consumeWorkspaceRowPressSuppression()) {
         return;
       }
-      useSidebarSelectionStore.getState().clear();
+      useSidebarSelectionStore.getState().handleNavigatePress({
+        serverId: workspace.serverId,
+        workspaceId: workspace.workspaceId,
+        workspaceKey: workspace.workspaceKey,
+      });
     }
     handleNavigatePress();
   }, [handleNavigatePress, workspace]);
+  const handleRowPointerUp = useCallback(() => {
+    if (!platformIsWeb) {
+      return;
+    }
+    const intent = consumeWorkspaceRowPointerUpIntent();
+    if (intent) {
+      useSidebarSelectionStore.getState().handleSelectPress(
+        {
+          serverId: workspace.serverId,
+          workspaceId: workspace.workspaceId,
+          workspaceKey: workspace.workspaceKey,
+        },
+        { range: intent.kind === "range" },
+      );
+    }
+  }, [workspace]);
   const handlePressIn = useCallback(
     (event: GestureResponderEvent) => {
       setIsPressed(true);
@@ -923,6 +938,7 @@ function StatusWorkspaceRowInnerContent({
             ref={dragHandleProps?.setActivatorNodeRef as unknown as Ref<View>}
             style={styles.workspaceRowContainer}
             onPointerDown={captureWorkspaceRowPointerModifiers}
+            onPointerUp={handleRowPointerUp}
             {...hoverHandlers}
           >
             <SidebarWorkspaceContextMenu

@@ -20,6 +20,12 @@ interface SidebarSelectionState {
   anchorKey: string | null;
   setOrder: (order: readonly SidebarSelectionTarget[]) => void;
   handleSelectPress: (target: SidebarSelectionTarget, options: { range: boolean }) => void;
+  /**
+   * A plain press navigates without selecting, but it still moves the range anchor: the next
+   * shift press extends from the row that was just navigated to, the way file managers extend
+   * from the last-clicked row.
+   */
+  handleNavigatePress: (target: SidebarSelectionTarget) => void;
   clear: () => void;
 }
 
@@ -107,5 +113,11 @@ export const useSidebarSelectionStore = create<SidebarSelectionState>((set, get)
       anchorKey: removed && next.length === 0 ? null : target.workspaceKey,
     });
   },
+  handleNavigatePress: (target) =>
+    set({
+      selected: [],
+      selectedKeys: emptySidebarSelectionTargetSet,
+      anchorKey: target.workspaceKey,
+    }),
   clear: () => set({ selected: [], selectedKeys: emptySidebarSelectionTargetSet, anchorKey: null }),
 }));

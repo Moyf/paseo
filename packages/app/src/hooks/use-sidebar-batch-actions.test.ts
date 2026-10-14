@@ -81,7 +81,7 @@ describe("selectArchivableEntries", () => {
 });
 
 describe("buildSidebarBatchAffordances", () => {
-  it("splits pin-capable rows by their current pinned state", () => {
+  it("counts all pin-capable rows for pin and unpin, which both act on the whole set", () => {
     const entries = [
       entry("unpinned", descriptor({ pinnedAt: null })),
       entry("pinned", descriptor({ pinnedAt: "2026-10-14T00:00:00Z" })),
@@ -90,8 +90,7 @@ describe("buildSidebarBatchAffordances", () => {
     const affordances = buildSidebarBatchAffordances(SESSIONS, entries);
     expect(affordances).toEqual({
       count: 3,
-      pinCount: 1,
-      unpinCount: 1,
+      pinCapableCount: 2,
       unreadCount: 2,
       archivableCount: 3,
     });
@@ -101,8 +100,7 @@ describe("buildSidebarBatchAffordances", () => {
     const affordances = buildSidebarBatchAffordances(SESSIONS, [entry("gone", null)]);
     expect(affordances).toEqual({
       count: 1,
-      pinCount: 0,
-      unpinCount: 0,
+      pinCapableCount: 0,
       unreadCount: 0,
       archivableCount: 0,
     });

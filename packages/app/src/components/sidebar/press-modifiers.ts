@@ -1,4 +1,4 @@
-import { Platform, type PointerEvent } from "react-native";
+import { Platform } from "react-native";
 
 /**
  * Which non-navigating thing a workspace-row press means, decided by the pointer modifiers held
@@ -20,6 +20,7 @@ export function resolveWorkspaceRowPressIntent(input: {
 }
 
 let pendingIntent: WorkspaceRowPressIntent | null = null;
+let handledAtPointerUp = false;
 
 function isApplePlatform(): boolean {
   if (Platform.OS !== "web") return false;
@@ -29,16 +30,18 @@ function isApplePlatform(): boolean {
 }
 
 /**
- * React-native-web press events do not carry modifier keys, so the row container snapshots the
- * intent off `onPointerDown`, which runs before the synthesized press. Every pointerdown
- * overwrites the snapshot, so a click on the kebab or any other child cannot leave stale
- * modifiers behind.
+ * React-native-web's responder system never delivers a press for a Ctrl-keyed click
+ * (`isPrimaryPointerDown` rejects Ctrl the way it rejects right-clicks, because Ctrl+click is
+ * the Mac context-menu gesture), so the press handler cannot be where modifier clicks are
+ * handled. The row container instead snapshots the intent at `onPointerDown` and applies it at
+ * `onPointerUp`, and flags the press so the synthesized one — which still arrives for Shift —
+ * knows the click was already handled.
  *
  * On web the handler receives the raw DOM PointerEvent, which carries the modifier flags; the
  * synthetic React Native type does not, so the flags are read defensively.
  */
-export function captureWorkspaceRowPointerModifiers(event: PointerEvent): void {
-  const modifiers = event as unknown as {
+export function captureWorkspaceRowPointerModifiers(event: unknown): void {
+  const modifiers = event as {
     ctrlKey?: boolean | null;
     metaKey?: boolean | null;
     shiftKey?: boolean | null;
@@ -52,12 +55,20 @@ export function captureWorkspaceRowPointerModifiers(event: PointerEvent): void {
 }
 
 /**
- * Read and drop the pending intent, so one pointerdown answers at most one press. A press that
- * never arrives (a touch that became a drag) leaves the snapshot for the next pointerdown to
- * overwrite.
+ * Pointer came up on the row: return the captured intent for the caller to apply, or null for a
+ * plain click. A returned intent also arms the press suppression, because Shift clicks still
+ * synthesize a press after this.
  */
-export function consumeWorkspaceRowPressIntent(): WorkspaceRowPressIntent | null {
+export function consumeWorkspaceRowPointerUpIntent(): WorkspaceRowPressIntent | null {
   const intent = pendingIntent;
   pendingIntent = null;
+  handledAtPointerUp = intent !== null;
   return intent;
+}
+
+/** True when the pointerup already applied this press's intent; consumes the flag. */
+export function consumeWorkspaceRowPressSuppression(): boolean {
+  const suppressed = handledAtPointerUp;
+  handledAtPointerUp = false;
+  return suppressed;
 }

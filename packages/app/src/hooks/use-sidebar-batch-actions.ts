@@ -256,10 +256,8 @@ export function useSidebarSelectionEntries(
 
 export interface SidebarBatchAffordances {
   count: number;
-  /** Pin-capable rows that are currently unpinned — what "Pin" would act on. */
-  pinCount: number;
-  /** Pin-capable rows that are currently pinned — what "Unpin" would act on. */
-  unpinCount: number;
+  /** Rows on pin-capable hosts — pin and unpin both act on all of them (idempotent). */
+  pinCapableCount: number;
   /** Rows that can take a mark-unread. */
   unreadCount: number;
   /** Rows the archive action can act on. */
@@ -271,12 +269,9 @@ export function buildSidebarBatchAffordances(
   sessions: SessionsSlice,
   entries: readonly SidebarBatchSelectionEntry[],
 ): SidebarBatchAffordances {
-  const pinCapable = selectPinCapableEntries(sessions, entries);
-  const unpinned = pinCapable.filter((entry) => entry.workspace.pinnedAt == null);
   return {
     count: entries.length,
-    pinCount: unpinned.length,
-    unpinCount: pinCapable.length - unpinned.length,
+    pinCapableCount: selectPinCapableEntries(sessions, entries).length,
     unreadCount: selectMarkUnreadEligibleEntries(sessions, entries).length,
     archivableCount: selectArchivableEntries(entries).length,
   };

@@ -178,24 +178,24 @@ function SidebarBatchWorkspaceMenuItems({
 
   return (
     <>
-      {affordances.pinCount > 0 ? (
+      {affordances.pinCapableCount > 0 ? (
         <WorkspaceMenuItem
           surface={surface}
           testID={`sidebar-workspace-menu-batch-pin-${workspaceKey}`}
           leading={pinLeadingIcon}
           onSelect={handlePin}
         >
-          {t("sidebar.workspace.batch.pin", { count: affordances.pinCount })}
+          {t("sidebar.workspace.batch.pin", { count: affordances.pinCapableCount })}
         </WorkspaceMenuItem>
       ) : null}
-      {affordances.unpinCount > 0 ? (
+      {affordances.pinCapableCount > 0 ? (
         <WorkspaceMenuItem
           surface={surface}
           testID={`sidebar-workspace-menu-batch-unpin-${workspaceKey}`}
           leading={unpinLeadingIcon}
           onSelect={handleUnpin}
         >
-          {t("sidebar.workspace.batch.unpin", { count: affordances.unpinCount })}
+          {t("sidebar.workspace.batch.unpin", { count: affordances.pinCapableCount })}
         </WorkspaceMenuItem>
       ) : null}
       {affordances.unreadCount > 0 ? (

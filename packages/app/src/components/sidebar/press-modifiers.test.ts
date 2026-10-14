@@ -1,7 +1,8 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   captureWorkspaceRowPointerModifiers,
-  consumeWorkspaceRowPressIntent,
+  consumeWorkspaceRowPointerUpIntent,
+  consumeWorkspaceRowPressSuppression,
   resolveWorkspaceRowPressIntent,
   type WorkspaceRowPressIntent,
 } from "@/components/sidebar/press-modifiers";
@@ -76,10 +77,12 @@ describe("resolveWorkspaceRowPressIntent", () => {
   });
 });
 
-describe("capture and consume", () => {
+describe("capture and pointerup", () => {
   afterEach(() => {
     vi.unstubAllGlobals();
-    consumeWorkspaceRowPressIntent();
+    captureWorkspaceRowPointerModifiers({});
+    consumeWorkspaceRowPointerUpIntent();
+    consumeWorkspaceRowPressSuppression();
   });
 
   function stubApplePlatform(isApple: boolean): void {
@@ -93,24 +96,29 @@ describe("capture and consume", () => {
     return modifiers as unknown as Parameters<typeof captureWorkspaceRowPointerModifiers>[0];
   }
 
-  it("consumes the captured intent exactly once", () => {
+  it("hands the captured intent to pointerup exactly once and arms the suppression", () => {
     stubApplePlatform(true);
     captureWorkspaceRowPointerModifiers(pointerEvent({ metaKey: true }));
-    const intent: WorkspaceRowPressIntent | null = consumeWorkspaceRowPressIntent();
+    const intent: WorkspaceRowPressIntent | null = consumeWorkspaceRowPointerUpIntent();
     expect(intent).toEqual({ kind: "toggle" });
-    expect(consumeWorkspaceRowPressIntent()).toBeNull();
+    expect(consumeWorkspaceRowPressSuppression()).toBe(true);
+    expect(consumeWorkspaceRowPressSuppression()).toBe(false);
   });
 
-  it("a plain pointerdown overwrites a stale modifier intent", () => {
+  it("a plain pointerup disarms the suppression, healing an undelivered ctrl press", () => {
     stubApplePlatform(false);
     captureWorkspaceRowPointerModifiers(pointerEvent({ ctrlKey: true }));
+    expect(consumeWorkspaceRowPointerUpIntent()).toEqual({ kind: "toggle" });
+    // A ctrl press never arrives (the responder skips it), so the flag stays armed until the
+    // next click's own pointerup clears it — that plain click must navigate normally.
     captureWorkspaceRowPointerModifiers(pointerEvent({}));
-    expect(consumeWorkspaceRowPressIntent()).toBeNull();
+    expect(consumeWorkspaceRowPointerUpIntent()).toBeNull();
+    expect(consumeWorkspaceRowPressSuppression()).toBe(false);
   });
 
   it("captures Shift as a range", () => {
     stubApplePlatform(false);
     captureWorkspaceRowPointerModifiers(pointerEvent({ shiftKey: true }));
-    expect(consumeWorkspaceRowPressIntent()).toEqual({ kind: "range" });
+    expect(consumeWorkspaceRowPointerUpIntent()).toEqual({ kind: "range" });
   });
 });
