@@ -93,7 +93,7 @@ import {
   SidebarWorkspaceMenu,
 } from "@/components/sidebar/sidebar-workspace-menu";
 import { useLongPressDragInteraction } from "@/components/sidebar/use-long-press-drag-interaction";
-import { useSidebarRowDoublePress } from "@/components/sidebar/use-sidebar-row-double-press";
+import { useDoublePress } from "@/hooks/use-double-press";
 import { PinnedSectionHeader } from "@/components/sidebar/pinned-section-header";
 import { SidebarGroupToggleRow } from "@/components/sidebar/sidebar-group-toggle-row";
 import { useLimitedSidebarGroup } from "@/components/sidebar/use-limited-sidebar-group";
@@ -1090,7 +1090,7 @@ function WorkspaceRowInner({
     ...dragAttributes
   } = dragHandleProps?.attributes ?? {};
 
-  const handlePress = useSidebarRowDoublePress({
+  const handlePress = useDoublePress({
     onPress,
     onRename,
     didLongPressRef: interaction.didLongPressRef,
