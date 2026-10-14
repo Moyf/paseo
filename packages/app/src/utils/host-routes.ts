@@ -571,6 +571,20 @@ export function buildSettingsHostSectionRoute(serverId: string, section: HostSec
   return `/settings/hosts/${encodeSegment(normalized)}/${section}` as const;
 }
 
+export function buildSettingsPluginScreenRoute(
+  serverId: string,
+  pluginId: string,
+  screenId: string,
+) {
+  const normalizedServerId = trimNonEmpty(serverId);
+  const normalizedPluginId = trimNonEmpty(pluginId);
+  const normalizedScreenId = trimNonEmpty(screenId);
+  if (!normalizedServerId || !normalizedPluginId || !normalizedScreenId) {
+    return buildSettingsRoute();
+  }
+  return `/settings/hosts/${encodeSegment(normalizedServerId)}/plugins/${encodeSegment(normalizedPluginId)}/${encodeSegment(normalizedScreenId)}` as const;
+}
+
 export function buildProjectsSettingsRoute(serverId: string) {
   const normalized = trimNonEmpty(serverId);
   if (!normalized) {

@@ -63,6 +63,7 @@ import {
 } from "@/hooks/use-settings";
 import { useHostRuntimeIsConnected, useHosts } from "@/runtime/host-runtime";
 import { useSessionStore } from "@/stores/session-store";
+import { rememberLastSettingsView } from "@/stores/last-settings-view";
 import {
   orderHostsLocalFirst,
   resolveActiveHostServerId,
@@ -1140,6 +1141,12 @@ export default function SettingsScreen({ view, openAddHostIntent = null }: Setti
         routedSettingsHostServerId ?? lastWorkspaceSelection?.serverId ?? null,
       );
     }, [lastWorkspaceSelection?.serverId, routedSettingsHostServerId]),
+  );
+
+  useFocusEffect(
+    useCallback(() => {
+      rememberLastSettingsView(view);
+    }, [view]),
   );
 
   // The host the four sections scope to: the host on the active view, otherwise

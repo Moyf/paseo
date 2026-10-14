@@ -30,8 +30,8 @@ import {
   buildOpenProjectRoute,
   buildSchedulesRoute,
   buildSessionsRoute,
-  buildSettingsRoute,
 } from "@/utils/host-routes";
+import { openSettings } from "@/navigation/settings-navigation";
 import { getShortcutOs } from "@/utils/shortcut-platform";
 import type { CommandCenterContribution, CommandCenterIconProps } from "./contributions";
 import { useCommandCenterActions } from "./provider";
@@ -114,7 +114,6 @@ export function CommandCenterRootActions() {
   const shortcutsAvailable = useKeyboardShortcutsAvailable();
   const openAddProject = useOpenAddProject();
   const { open: openImportSession, sheet: importSessionSheet } = useImportSession();
-  const settingsRoute = useMemo<Href>(() => buildSettingsRoute(), []);
   const homeRoute = useMemo<Href>(() => buildOpenProjectRoute(), []);
   const sessionsRoute = useMemo<Href>(() => buildSessionsRoute(), []);
   const schedulesRoute = useMemo<Href>(() => buildSchedulesRoute(), []);
@@ -254,7 +253,7 @@ export function CommandCenterRootActions() {
         visibility: "always",
         run: () => {
           clearCommandCenterFocusRestoreElement();
-          router.push(settingsRoute);
+          openSettings();
         },
         presentation: {
           kind: "action",
@@ -341,7 +340,6 @@ export function CommandCenterRootActions() {
     sessionsRoute,
     setGroupMode,
     setShortcutsDialogOpen,
-    settingsRoute,
     shortcutPlatform,
     shortcutsAvailable,
     t,
