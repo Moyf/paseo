@@ -16,6 +16,8 @@ concurrency:
 permissions:
   contents: write
   issues: write
+  # gh workflow run needs actions:write to dispatch the build workflow.
+  actions: write
 
 jobs:
   sync:
