@@ -505,6 +505,7 @@ const AgentStreamViewComponent = forwardRef<AgentStreamViewHandle, AgentStreamVi
 
         const plan = planInlinePathOpen({
           file: normalized.file,
+          directory: normalized.directory,
           lineStart: target.lineStart,
           workspaceRoot,
         });
