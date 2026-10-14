@@ -1,6 +1,7 @@
 import {
   memo,
   useCallback,
+  useEffect,
   useMemo,
   useState,
   type MutableRefObject,
@@ -61,6 +62,12 @@ import {
 } from "@/components/sidebar/sidebar-workspace-row-content";
 import { useOpenKebabMenuVisibility } from "@/components/sidebar/use-open-kebab-menu-visibility";
 import { getSidebarRowBackdrop } from "@/components/sidebar/sidebar-row-backdrop";
+import {
+  captureWorkspaceRowPointerModifiers,
+  consumeWorkspaceRowPressIntent,
+} from "@/components/sidebar/press-modifiers";
+import type { SidebarSelectionTarget } from "@/stores/sidebar-selection-store";
+import { useSidebarSelectionStore } from "@/stores/sidebar-selection-store";
 import { getStatusDotColor } from "@/utils/status-dot-color";
 import { selectWorkspaceServiceSummary } from "@/components/sidebar/workspace-meta-row";
 import {
@@ -113,6 +120,14 @@ function statusWorkspaceKeyExtractor(workspace: SidebarWorkspaceEntry): string {
   return workspace.workspaceKey;
 }
 
+function toSidebarSelectionTarget(workspace: SidebarWorkspaceEntry): SidebarSelectionTarget {
+  return {
+    serverId: workspace.serverId,
+    workspaceId: workspace.workspaceId,
+    workspaceKey: workspace.workspaceKey,
+  };
+}
+
 interface StatusWorkspaceListProps {
   groups: SidebarWorkspaceGroup[];
   pinnedWorkspaces: SidebarWorkspaceEntry[];
@@ -160,6 +175,26 @@ export function SidebarStatusWorkspaceList({
     canToggle: canTogglePinnedWorkspaces,
     toggleExpanded: togglePinnedWorkspacesExpanded,
   } = useLimitedSidebarGroup(pinnedWorkspaces);
+
+  // The flat visual order of the rows this list paints, mirroring project mode's registration:
+  // pinned chats, then every expanded group's rows. Collapsed groups hide their rows entirely,
+  // so they are left out rather than silently selected.
+  const selectionOrder = useMemo(
+    () => [
+      ...(pinnedCollapsed
+        ? []
+        : pinnedWorkspaces.map((workspace) => toSidebarSelectionTarget(workspace))),
+      ...groups.flatMap((group) =>
+        collapsedWorkspaceGroupKeys.has(group.key)
+          ? []
+          : group.rows.map((workspace) => toSidebarSelectionTarget(workspace)),
+      ),
+    ],
+    [collapsedWorkspaceGroupKeys, groups, pinnedCollapsed, pinnedWorkspaces],
+  );
+  useEffect(() => {
+    useSidebarSelectionStore.getState().setOrder(selectionOrder);
+  }, [selectionOrder]);
 
   const statusShortcutIndex = showShortcutBadges
     ? shortcutIndexByWorkspaceKey
@@ -807,11 +842,35 @@ function StatusWorkspaceRowInnerContent({
   const startDragPress = dragInteraction?.handlePressIn;
   const moveDragPress = dragInteraction?.handleTouchMove;
   const endDragPress = dragInteraction?.handlePressOut;
-  const handlePress = useDoublePress({
+  const multiSelected = useSidebarSelectionStore((state) =>
+    state.selectedKeys.has(workspace.workspaceKey),
+  );
+  // Same rule as project mode: a modifier press edits the multi-selection and never navigates; a
+  // plain press clears whatever selection was building and falls through to the double-press
+  // rename handler, which also owns the long-press guard.
+  const handleNavigatePress = useDoublePress({
     onPress,
     onRename,
     didLongPressRef,
   });
+  const handlePress = useCallback(() => {
+    if (platformIsWeb) {
+      const intent = consumeWorkspaceRowPressIntent();
+      if (intent) {
+        useSidebarSelectionStore.getState().handleSelectPress(
+          {
+            serverId: workspace.serverId,
+            workspaceId: workspace.workspaceId,
+            workspaceKey: workspace.workspaceKey,
+          },
+          { range: intent.kind === "range" },
+        );
+        return;
+      }
+      useSidebarSelectionStore.getState().clear();
+    }
+    handleNavigatePress();
+  }, [handleNavigatePress, workspace]);
   const handlePressIn = useCallback(
     (event: GestureResponderEvent) => {
       setIsPressed(true);
@@ -847,15 +906,23 @@ function StatusWorkspaceRowInnerContent({
           selected,
           isHovered,
           inStatusGroup,
+          multiSelected,
           isDragging,
         });
-        const backdrop = getSidebarRowBackdrop({ isDragging, isPressed, selected, isHovered });
+        const backdrop = getSidebarRowBackdrop({
+          isDragging,
+          isPressed,
+          selected,
+          multiSelected,
+          isHovered,
+        });
         return (
           <View
             {...dragAttributes}
             {...dragHandleProps?.listeners}
             ref={dragHandleProps?.setActivatorNodeRef as unknown as Ref<View>}
             style={styles.workspaceRowContainer}
+            onPointerDown={captureWorkspaceRowPointerModifiers}
             {...hoverHandlers}
           >
             <SidebarWorkspaceContextMenu
@@ -1017,12 +1084,14 @@ function getStatusWorkspaceRowStyle({
   selected,
   isHovered,
   inStatusGroup,
+  multiSelected,
   isDragging,
 }: {
   isPressed: boolean;
   selected: boolean;
   isHovered: boolean;
   inStatusGroup: boolean;
+  multiSelected: boolean;
   isDragging: boolean;
 }) {
   return [
@@ -1030,6 +1099,7 @@ function getStatusWorkspaceRowStyle({
     inStatusGroup && sidebarWorkspaceRowStyles.rowIndented,
     isHovered && styles.workspaceRowHovered,
     selected && styles.sidebarRowSelected,
+    multiSelected && styles.sidebarRowMultiSelected,
     isDragging && styles.workspaceRowDragging,
     isPressed && styles.workspaceRowPressed,
   ];
@@ -1135,5 +1205,10 @@ const styles = StyleSheet.create((theme) => ({
   },
   sidebarRowSelected: {
     backgroundColor: theme.colors.surfaceSidebarSelected,
+  },
+  // Same rule as project mode: a multi-selected row rests at hover strength and hands hover the
+  // pressed surface. See sidebarRowMultiSelected in sidebar-workspace-list.tsx.
+  sidebarRowMultiSelected: {
+    backgroundColor: theme.colors.surfaceSidebarHover,
   },
 }));
