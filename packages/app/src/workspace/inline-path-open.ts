@@ -35,7 +35,7 @@ export function planInlinePathOpen(input: {
     // Lexical directory: a trailing slash, ".", or the workspace root itself.
     return { kind: "directory", directoryPath: directory?.trim() ? directory : "." };
   }
-  if (!file.trim() || lineStart !== undefined || hasFileExtension(file)) {
+  if (!file.trim() || lineStart !== undefined) {
     return { kind: "file" };
   }
 
@@ -44,6 +44,11 @@ export function planInlinePathOpen(input: {
 
   if (!isAbsolutePath(normalizedPath)) {
     if (!normalizedRoot) {
+      return { kind: "file" };
+    }
+    // Inside the workspace the extension shortcut holds: dotted folder names are rare
+    // there, and probing every file click would cost a round trip on the hot path.
+    if (hasFileExtension(normalizedPath)) {
       return { kind: "file" };
     }
     return {
@@ -55,6 +60,9 @@ export function planInlinePathOpen(input: {
   }
 
   if (normalizedRoot && isPathWithinRoot(normalizedPath, normalizedRoot)) {
+    if (hasFileExtension(normalizedPath)) {
+      return { kind: "file" };
+    }
     return {
       kind: "probe",
       root: normalizedRoot,
@@ -63,6 +71,9 @@ export function planInlinePathOpen(input: {
     };
   }
 
+  // Outside the workspace the extension heuristic is unreliable (dotted folder names
+  // like "reports.v1" are common), and the only useful action for a confirmed folder
+  // is the system file manager — so always ask the daemon.
   const segments = normalizedPath.split("/");
   const basename = segments[segments.length - 1];
   const dirname = segments.slice(0, -1).join("/");

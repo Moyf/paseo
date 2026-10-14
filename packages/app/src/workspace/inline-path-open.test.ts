@@ -89,6 +89,31 @@ describe("planInlinePathOpen", () => {
     });
   });
 
+  it("probes dotted external folders instead of trusting the extension heuristic", () => {
+    expect(
+      planInlinePathOpen({ file: "C:/external/reports.v1", workspaceRoot: "C:/repo" }),
+    ).toEqual({
+      kind: "probe",
+      root: "C:/external",
+      relativePath: "reports.v1",
+      underWorkspace: false,
+    });
+    expect(
+      planInlinePathOpen({ file: "C:\\external\\reports.v1\\", workspaceRoot: "C:/repo" }),
+    ).toEqual({
+      kind: "probe",
+      root: "C:/external",
+      relativePath: "reports.v1",
+      underWorkspace: false,
+    });
+  });
+
+  it("keeps the extension shortcut for files inside the workspace only", () => {
+    expect(
+      planInlinePathOpen({ file: "/repo/reports.v1/data.txt", workspaceRoot: "/repo" }),
+    ).toEqual({ kind: "file" });
+  });
+
   it("opens extension-less paths directly as files when there is no workspace root", () => {
     expect(planInlinePathOpen({ file: "some-folder", workspaceRoot: "  " })).toEqual({
       kind: "file",
