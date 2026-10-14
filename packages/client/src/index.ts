@@ -492,6 +492,12 @@ export interface PaseoApi {
   readonly agents: PaseoAgentActions;
   readonly providers: PaseoProviderActions;
   readonly config: PaseoConfigActions;
+  /**
+   * Builds the chat-history attachment a fork needs, verbatim from the daemon
+   * RPC. Present so plugin surfaces can offer forking; plugins feature-detect
+   * it, since hosts older than this surface simply leave it off the facade.
+   */
+  buildAgentForkContext: DaemonClient["buildAgentForkContext"];
 }
 
 export interface PaseoClient extends PaseoApi {
@@ -696,6 +702,8 @@ export function createPaseoApi(
   return {
     dispose,
     observeEvents,
+    buildAgentForkContext: (agentId, options) =>
+      daemonClient.buildAgentForkContext(agentId, options),
     terminals,
     projects: {
       list: (options) => daemonClient.listProjects(options),
