@@ -50,8 +50,8 @@ import {
   splitWorkspaceRootRightInLayout,
   splitWorkspaceRootBottomInLayout,
   splitPaneInLayout,
-  BOTTOM_DOCK_MAX_SIZE,
-  clampBottomDockGroupSizes,
+  BOTTOM_DOCK_MAX_HEIGHT_PX,
+  clampChildFractionInSizes,
   stripEphemeralTabsFromLayout,
   type SplitGroup,
   type SplitNode,
@@ -73,7 +73,9 @@ import { panelTargetSupportsHostForWorkspaceKey } from "@/plugins/workspace-pane
 
 export {
   AMBIENT_PLACEMENT,
+  BOTTOM_DOCK_MAX_HEIGHT_PX,
   canDismissPaneInLayout,
+  clampChildFractionInSizes,
   collectAllPanes,
   collectAllTabs,
   createDefaultLayout,
@@ -1937,25 +1939,12 @@ export function createWorkspaceLayoutStore(
             return;
           }
 
-          const bottomPaneId = get().bottomPaneIdByWorkspace[normalizedWorkspaceKey] ?? null;
-          const layout = bottomPaneId ? get().layoutByWorkspace[normalizedWorkspaceKey] : undefined;
-          const nextSizes =
-            bottomPaneId && layout
-              ? clampBottomDockGroupSizes({
-                  root: layout.root,
-                  groupId: normalizedGroupId,
-                  sizes,
-                  bottomPaneId,
-                  maxSize: BOTTOM_DOCK_MAX_SIZE,
-                })
-              : sizes;
-
           set((state) => ({
             splitSizesByWorkspace: {
               ...state.splitSizesByWorkspace,
               [normalizedWorkspaceKey]: {
                 ...state.splitSizesByWorkspace[normalizedWorkspaceKey],
-                [normalizedGroupId]: clampNormalizedSizes(nextSizes),
+                [normalizedGroupId]: clampNormalizedSizes(sizes),
               },
             },
           }));
