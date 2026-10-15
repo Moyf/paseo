@@ -389,8 +389,12 @@ function getProjectWorkspaceRowStyle({
   return [
     styles.workspaceRow,
     isHovered && styles.workspaceRowHovered,
+    // Multi-selected first: the active row's selected surface must win when a row is both
+    // (a plain press single-selects the active row), and it is the brighter of the two — the
+    // meta label colours are tuned against it.
+    multiSelected &&
+      (isHovered ? styles.sidebarRowMultiSelectedHovered : styles.sidebarRowMultiSelected),
     selected && styles.sidebarRowSelected,
-    multiSelected && styles.sidebarRowMultiSelected,
     isDragging && styles.workspaceRowDragging,
     isPressed && styles.workspaceRowPressed,
   ];
@@ -2835,10 +2839,14 @@ const styles = StyleSheet.create((theme) => ({
   sidebarRowSelected: {
     backgroundColor: theme.colors.surfaceSidebarSelected,
   },
-  // A row inside a multi-selection but not the active workspace. Hover-strong at rest so it
-  // reads as held, and hover hands it the pressed surface for feedback on top of it.
+  // A row inside a multi-selection but not the active workspace. Rests at hover strength so it
+  // reads as held; hover hands it the pressed surface — matching getSidebarRowBackdrop, whose
+  // knockouts (status badge, trailing scrim) must sit on the same colour.
   sidebarRowMultiSelected: {
     backgroundColor: theme.colors.surfaceSidebarHover,
+  },
+  sidebarRowMultiSelectedHovered: {
+    backgroundColor: theme.colors.surface2,
   },
   workspaceRowContainer: {
     position: "relative",

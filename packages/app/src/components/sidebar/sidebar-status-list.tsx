@@ -1121,8 +1121,12 @@ function getStatusWorkspaceRowStyle({
     styles.workspaceRow,
     inStatusGroup && sidebarWorkspaceRowStyles.rowIndented,
     isHovered && styles.workspaceRowHovered,
+    // Multi-selected first: the active row's selected surface must win when a row is both
+    // (a plain press single-selects the active row), and it is the brighter of the two — the
+    // meta label colours are tuned against it.
+    multiSelected &&
+      (isHovered ? styles.sidebarRowMultiSelectedHovered : styles.sidebarRowMultiSelected),
     selected && styles.sidebarRowSelected,
-    multiSelected && styles.sidebarRowMultiSelected,
     isDragging && styles.workspaceRowDragging,
     isPressed && styles.workspaceRowPressed,
   ];
@@ -1229,9 +1233,12 @@ const styles = StyleSheet.create((theme) => ({
   sidebarRowSelected: {
     backgroundColor: theme.colors.surfaceSidebarSelected,
   },
-  // Same rule as project mode: a multi-selected row rests at hover strength and hands hover the
-  // pressed surface. See sidebarRowMultiSelected in sidebar-workspace-list.tsx.
+  // Same rule as project mode: a multi-selected row rests at hover strength and hover hands it
+  // the pressed surface. See sidebarRowMultiSelected in sidebar-workspace-list.tsx.
   sidebarRowMultiSelected: {
     backgroundColor: theme.colors.surfaceSidebarHover,
+  },
+  sidebarRowMultiSelectedHovered: {
+    backgroundColor: theme.colors.surface2,
   },
 }));
