@@ -884,6 +884,8 @@ interface WorkspaceTerminalTabActions {
     terminalId: string;
     destination: TerminalTabDestination;
   }) => void;
+  /** A script spawned its terminal: implicit open that follows the Open location preference. */
+  handleScriptTerminalStarted: (terminalId: string) => void;
   handleScriptTerminalSelected: (terminalId: string) => void;
   handleWorkspacePathUnavailable: () => void;
   handleTerminalCreateQueued: () => void;
@@ -931,6 +933,25 @@ function useWorkspaceTerminalTabActions({
       terminalOpenLocation,
     ],
   );
+  const handleScriptTerminalStarted = useCallback(
+    (terminalId: string) => {
+      if (!persistenceKey) {
+        return;
+      }
+      openWorkspaceTabFocused(
+        persistenceKey,
+        { kind: "terminal", terminalId },
+        resolveImplicitTerminalPlacement({
+          isCompact,
+          supportsPaneSplits: supportsDesktopPaneSplits(),
+          persistenceKey,
+          location: terminalOpenLocation,
+          destination: { kind: "open" },
+        }) ?? FOCUSED_PANE_PLACEMENT,
+      );
+    },
+    [isCompact, openWorkspaceTabFocused, persistenceKey, terminalOpenLocation],
+  );
   const handleScriptTerminalSelected = useCallback(
     (terminalId: string) => {
       if (!persistenceKey) {
@@ -959,6 +980,7 @@ function useWorkspaceTerminalTabActions({
 
   return {
     handleTerminalCreated,
+    handleScriptTerminalStarted,
     handleScriptTerminalSelected,
     handleWorkspacePathUnavailable,
     handleTerminalCreateQueued,
@@ -1148,6 +1170,7 @@ function WorkspaceScreenContent({
 
   const {
     handleTerminalCreated,
+    handleScriptTerminalStarted,
     handleScriptTerminalSelected,
     handleWorkspacePathUnavailable,
     handleTerminalCreateQueued,
@@ -1168,7 +1191,7 @@ function WorkspaceScreenContent({
   const {
     createMutation: createTerminalMutation,
     createTerminal,
-    handleScriptTerminalStarted,
+    handleScriptTerminalStarted: handleScriptTerminalStartedEvent,
     handleViewScriptTerminal,
     invalidateTerminals,
     killMutation: killTerminalMutation,
@@ -1190,6 +1213,7 @@ function WorkspaceScreenContent({
     hasHydratedWorkspaces,
     isMissingWorkspaceDirectory,
     onTerminalCreated: handleTerminalCreated,
+    onScriptTerminalStarted: handleScriptTerminalStarted,
     onScriptTerminalSelected: handleScriptTerminalSelected,
     onWorkspacePathUnavailable: handleWorkspacePathUnavailable,
     onTerminalCreateQueued: handleTerminalCreateQueued,
@@ -3228,7 +3252,7 @@ function WorkspaceScreenContent({
             workspaceId={normalizedWorkspaceId}
             scripts={workspaceDescriptor.scripts}
             liveTerminalIds={liveTerminalIds}
-            onScriptTerminalStarted={handleScriptTerminalStarted}
+            onScriptTerminalStarted={handleScriptTerminalStartedEvent}
             onViewTerminal={handleViewScriptTerminal}
             onOpenUrlInBrowserTab={handleOpenUrlInBrowserTab}
             hideLabels
@@ -3265,7 +3289,7 @@ function WorkspaceScreenContent({
       workspaceDirectory,
       activeFileLocation,
       liveTerminalIds,
-      handleScriptTerminalStarted,
+      handleScriptTerminalStartedEvent,
       handleViewScriptTerminal,
       handleOpenUrlInBrowserTab,
       handleToggleExplorerSidebar,

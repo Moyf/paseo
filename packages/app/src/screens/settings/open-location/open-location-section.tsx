@@ -5,8 +5,8 @@ import {
   useAppSettings,
   type OpenInSidePanePreferences,
   type PullRequestOpenLocation,
-  type TerminalOpenLocation,
   type ServiceUrlBehavior,
+  type TerminalOpenLocation,
 } from "@/hooks/use-settings";
 
 const SOURCES = [
@@ -17,18 +17,11 @@ const SOURCES = [
   "subagents",
 ] as const satisfies readonly (keyof OpenInSidePanePreferences)[];
 
-type LayoutPreferenceSource = keyof OpenInSidePanePreferences | "pullRequests" | "terminal";
-type LayoutPreferenceDestination = PullRequestOpenLocation | "bottom";
+const SERVICE_URL_BEHAVIORS: readonly ServiceUrlBehavior[] = ["ask", "in-app", "external"];
 
 const TERMINAL_DESTINATIONS: readonly TerminalOpenLocation[] = ["main", "side", "bottom"];
-const MAIN_AND_SIDE_DESTINATIONS: readonly LayoutPreferenceDestination[] = ["main", "side"];
-const PULL_REQUEST_DESTINATIONS: readonly LayoutPreferenceDestination[] = [
-  "main",
-  "side",
-  "explorer",
-];
-
-const SERVICE_URL_BEHAVIORS: readonly ServiceUrlBehavior[] = ["ask", "in-app", "external"];
+const MAIN_AND_SIDE_DESTINATIONS: readonly OpenLocationDestination[] = ["main", "side"];
+const PULL_REQUEST_DESTINATIONS: readonly OpenLocationDestination[] = ["main", "side", "explorer"];
 
 const SERVICE_URL_LABEL_KEYS: Record<ServiceUrlBehavior, string> = {
   ask: "settings.general.serviceUrls.options.ask",
@@ -36,19 +29,19 @@ const SERVICE_URL_LABEL_KEYS: Record<ServiceUrlBehavior, string> = {
   external: "settings.general.serviceUrls.options.external",
 };
 
-function LayoutPreferenceRow({
+type OpenLocationSource = keyof OpenInSidePanePreferences | "pullRequests" | "terminal";
+type OpenLocationDestination = PullRequestOpenLocation | "bottom";
+
+function OpenLocationRow({
   source,
   destination,
   destinations,
   onDestinationChange,
 }: {
-  source: LayoutPreferenceSource;
-  destination: LayoutPreferenceDestination;
-  destinations: readonly LayoutPreferenceDestination[];
-  onDestinationChange(
-    source: LayoutPreferenceSource,
-    destination: LayoutPreferenceDestination,
-  ): void;
+  source: OpenLocationSource;
+  destination: OpenLocationDestination;
+  destinations: readonly OpenLocationDestination[];
+  onDestinationChange(source: OpenLocationSource, destination: OpenLocationDestination): void;
 }) {
   const { t } = useTranslation();
   const options = useMemo(
@@ -60,7 +53,7 @@ function LayoutPreferenceRow({
     [destinations, t],
   );
   const change = useCallback(
-    (value: LayoutPreferenceDestination) => onDestinationChange(source, value),
+    (value: OpenLocationDestination) => onDestinationChange(source, value),
     [source, onDestinationChange],
   );
   return (
@@ -95,12 +88,12 @@ function ServiceUrlRow() {
   );
 }
 
-/** Where things open: files, diffs, subagents, pull requests, terminal, and script URLs. Desktop only. */
+/** Where things open: files, diffs, subagents, pull requests, and script URLs. Desktop only. */
 export function OpenLocationSection() {
   const { t } = useTranslation();
   const { settings, updateSettings } = useAppSettings();
   const handleDestinationChange = useCallback(
-    (source: LayoutPreferenceSource, destination: LayoutPreferenceDestination) => {
+    (source: OpenLocationSource, destination: OpenLocationDestination) => {
       if (source === "pullRequests") {
         if (destination === "bottom") {
           return;
@@ -125,7 +118,7 @@ export function OpenLocationSection() {
     <SettingsSection title={t("settings.layout.openInSidePane.title")}>
       <SettingsCard>
         {SOURCES.map((source) => (
-          <LayoutPreferenceRow
+          <OpenLocationRow
             key={source}
             source={source}
             destination={settings.openInSidePane[source] ? "side" : "main"}
@@ -133,13 +126,13 @@ export function OpenLocationSection() {
             onDestinationChange={handleDestinationChange}
           />
         ))}
-        <LayoutPreferenceRow
+        <OpenLocationRow
           source="terminal"
           destination={settings.terminalOpenLocation}
           destinations={TERMINAL_DESTINATIONS}
           onDestinationChange={handleDestinationChange}
         />
-        <LayoutPreferenceRow
+        <OpenLocationRow
           source="pullRequests"
           destination={settings.pullRequestOpenLocation}
           destinations={PULL_REQUEST_DESTINATIONS}
