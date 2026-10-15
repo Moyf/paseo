@@ -6,9 +6,10 @@ export interface ForkBuildMeta {
   readonly version: string | null;
   readonly builtAt: string | null;
   readonly commit: string | null;
+  readonly commitTime: string | null;
 }
 
-export type ForkFeatureStatus = "pr-open" | "pr-merged" | "local-only";
+export type ForkFeatureStatus = "pr-open" | "pr-merged" | "pr-closed" | "local-only";
 
 export interface ForkFeature {
   readonly label: string;
@@ -19,8 +20,20 @@ export interface ForkFeature {
 
 export const FORK_FEATURES: readonly ForkFeature[] = [
   {
+    label: "会话多选批量操作",
+    detail: "侧栏多选会话，批量置顶、打标签、标记未读、归档",
+    status: "local-only",
+    prUrl: null,
+  },
+  {
+    label: "助手文件链接增强",
+    detail: "Windows 路径解析修复，右键文件操作菜单，文件夹链接直达",
+    status: "pr-open",
+    prUrl: "https://github.com/getpaseo/paseo/pull/6420",
+  },
+  {
     label: "工作区重命名快捷键",
-    detail: "快捷键或双击侧栏工作区即可重命名",
+    detail: "快捷键或双击侧栏工作区、标签页即可重命名",
     status: "pr-open",
     prUrl: "https://github.com/getpaseo/paseo/pull/4643",
   },
@@ -31,9 +44,21 @@ export const FORK_FEATURES: readonly ForkFeature[] = [
     prUrl: "https://github.com/getpaseo/paseo/pull/5344",
   },
   {
+    label: "设置页位置记忆",
+    detail: "重新打开设置时回到上次的页面",
+    status: "local-only",
+    prUrl: null,
+  },
+  {
+    label: "桌面更新仅提醒",
+    detail: "自动更新可改为仅提示，不自动安装",
+    status: "local-only",
+    prUrl: null,
+  },
+  {
     label: "标题栏拖动修复",
     detail: "滚动内容上方标题栏仍可拖动窗口",
-    status: "pr-open",
+    status: "pr-closed",
     prUrl: "https://github.com/getpaseo/paseo/pull/5413",
   },
   {
@@ -42,11 +67,18 @@ export const FORK_FEATURES: readonly ForkFeature[] = [
     status: "local-only",
     prUrl: null,
   },
+  {
+    label: "插件 API 扩展",
+    detail: "插件可调用 buildAgentForkContext 构建代理上下文",
+    status: "local-only",
+    prUrl: null,
+  },
 ];
 
 export const FORK_STATUS_TEXT: Record<ForkFeatureStatus, string> = {
   "pr-open": "待上游合并",
   "pr-merged": "已进入上游",
+  "pr-closed": "PR 已关闭",
   "local-only": "仅本地",
 };
 

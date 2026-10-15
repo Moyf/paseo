@@ -19,13 +19,22 @@ function statusText(feature: ForkFeature): string {
   return prNumber === null ? status : `PR #${prNumber} · ${status}`;
 }
 
-function buildHint(): string {
-  if (!FORK_BUILD_META.commit) {
-    return "本地源码运行，未经 CI 打包";
+function formatTime(iso: string): string {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) {
+    return iso;
   }
-  const commit = FORK_BUILD_META.commit.slice(0, 7);
-  const date = FORK_BUILD_META.builtAt?.slice(0, 10) ?? "";
-  return date ? `构建于 ${date} · ${commit}` : `构建 ${commit}`;
+  const pad = (value: number) => String(value).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
+function buildHint(): string {
+  const commit = FORK_BUILD_META.commit?.slice(0, 7) ?? null;
+  if (!commit) {
+    return "本地源码运行，未经打包";
+  }
+  const commitTime = FORK_BUILD_META.commitTime ?? FORK_BUILD_META.builtAt;
+  return commitTime ? `构建于 ${formatTime(commitTime)} · ${commit}` : `构建 ${commit}`;
 }
 
 export function ForkAboutSection() {
@@ -42,7 +51,7 @@ export function ForkAboutSection() {
             <Text style={settingsStyles.rowHint}>{buildHint()}</Text>
           </View>
           <Text style={styles.value} numberOfLines={1}>
-            {FORK_BUILD_META.version ?? "开发构建"}
+            {FORK_BUILD_META.version ?? "本地构建"}
           </Text>
         </Pressable>
         {FORK_FEATURES.map((feature) => (
