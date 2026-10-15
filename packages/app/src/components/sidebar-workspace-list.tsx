@@ -1633,6 +1633,7 @@ function ProjectBlock({
   supportsMultiplicityByServerId,
   supportsPinningByServerId,
   onToggleWorkspacePin,
+  selectionPosition,
 }: {
   project: SidebarProjectEntry;
   workspaceEntriesByKey: ReadonlyMap<string, SidebarWorkspaceEntry>;
@@ -1658,6 +1659,8 @@ function ProjectBlock({
   supportsMultiplicityByServerId: ReadonlyMap<string, boolean>;
   supportsPinningByServerId: ReadonlyMap<string, boolean>;
   onToggleWorkspacePin: ToggleSidebarWorkspacePin;
+  /** The block's visual position, for the multi-selection's flat row order. */
+  selectionPosition: number;
 }) {
   const {
     visibleItems: visibleWorkspaces,
@@ -1677,7 +1680,7 @@ function ProjectBlock({
           }),
     [collapsed, visibleWorkspaces, workspaceEntriesByKey],
   );
-  useSidebarSelectionSegment(`project:${project.viewKey}`, selectionTargets);
+  useSidebarSelectionSegment(`project:${project.viewKey}`, selectionPosition, selectionTargets);
   const rowModel = useMemo(
     () =>
       buildSidebarProjectRowModel({
@@ -1919,6 +1922,7 @@ function areProjectBlockPropsEqual(previous: ProjectBlockProps, next: ProjectBlo
     previous.supportsMultiplicityByServerId === next.supportsMultiplicityByServerId &&
     previous.supportsPinningByServerId === next.supportsPinningByServerId &&
     previous.onToggleWorkspacePin === next.onToggleWorkspacePin &&
+    previous.selectionPosition === next.selectionPosition &&
     previous.parentGestureRef === next.parentGestureRef &&
     previous.onToggleCollapsed === next.onToggleCollapsed &&
     previous.onWorkspacePress === next.onWorkspacePress &&
@@ -2241,8 +2245,8 @@ function ProjectModeList({
     toggleExpanded: togglePinnedChatsExpanded,
   } = useLimitedSidebarGroup(pinnedChats);
 
-  // Each section registers only the rows it actually renders, so a Shift range can never reach
-  // past a "show more" boundary or into a collapsed section.
+  // Each section registers only the rows it actually renders at its visual position, so a Shift
+  // range can never reach past a "show more" boundary or into a collapsed section.
   const pinnedSelectionTargets = useMemo(
     () =>
       pinnedCollapsed
@@ -2253,7 +2257,7 @@ function ProjectModeList({
           }),
     [pinnedCollapsed, visiblePinnedChats, workspaceEntriesByKey],
   );
-  useSidebarSelectionSegment("project:pinned", pinnedSelectionTargets);
+  useSidebarSelectionSegment("project:pinned", 0, pinnedSelectionTargets);
 
   const nativeScrollGestureProps = useMemo(
     () =>
@@ -2396,6 +2400,7 @@ function ProjectModeList({
         isDragging: boolean;
         dragHandleProps?: DraggableRenderItemInfo<SidebarProjectEntry>["dragHandleProps"];
       },
+      selectionPosition: number,
     ) => {
       return (
         <MemoProjectBlock
@@ -2403,6 +2408,7 @@ function ProjectModeList({
           project={item}
           workspaceEntriesByKey={workspaceEntriesByKey}
           collapsed={collapsedProjectKeys.has(item.viewKey)}
+          selectionPosition={selectionPosition}
           displayName={item.projectName}
           iconDataUri={projectIconByProjectViewKey.get(item.viewKey) ?? null}
           selectionEnabled={selectionEnabled}
@@ -2450,8 +2456,14 @@ function ProjectModeList({
   );
 
   const renderProject = useCallback(
-    ({ item, drag, isActive, dragHandleProps }: DraggableRenderItemInfo<SidebarProjectEntry>) =>
-      renderProjectBlock(item, { drag, isDragging: isActive, dragHandleProps }),
+    ({
+      item,
+      index,
+      drag,
+      isActive,
+      dragHandleProps,
+    }: DraggableRenderItemInfo<SidebarProjectEntry>) =>
+      renderProjectBlock(item, { drag, isDragging: isActive, dragHandleProps }, index + 1),
     [renderProjectBlock],
   );
 

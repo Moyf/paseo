@@ -179,13 +179,13 @@ export function SidebarStatusWorkspaceList({
     toggleExpanded: togglePinnedWorkspacesExpanded,
   } = useLimitedSidebarGroup(pinnedWorkspaces);
 
-  // Each section registers only the rows it actually renders, so a Shift range can never reach
-  // past a "show more" boundary or into a collapsed section.
+  // Each section registers only the rows it actually renders at its visual position, so a Shift
+  // range can never reach past a "show more" boundary or into a collapsed section.
   const pinnedSelectionTargets = useMemo(
     () => (pinnedCollapsed ? [] : visiblePinnedWorkspaces.map(toSidebarSelectionTarget)),
     [pinnedCollapsed, visiblePinnedWorkspaces],
   );
-  useSidebarSelectionSegment("status:pinned", pinnedSelectionTargets);
+  useSidebarSelectionSegment("status:pinned", 0, pinnedSelectionTargets);
 
   const statusShortcutIndex = showShortcutBadges
     ? shortcutIndexByWorkspaceKey
@@ -322,11 +322,12 @@ function StatusGroupList({
 }) {
   return (
     <>
-      {groups.map((group) => (
+      {groups.map((group, index) => (
         <StatusGroupRows
           key={group.key}
           group={group}
           collapsed={collapsedWorkspaceGroupKeys.has(group.key)}
+          selectionPosition={index + 1}
           projectIconByProjectViewKey={projectIconByProjectViewKey}
           shortcutIndex={shortcutIndex}
           showShortcutBadges={showShortcutBadges}
@@ -343,6 +344,7 @@ function StatusGroupList({
 function StatusGroupRows({
   group,
   collapsed,
+  selectionPosition,
   projectIconByProjectViewKey,
   shortcutIndex,
   showShortcutBadges,
@@ -353,6 +355,7 @@ function StatusGroupRows({
 }: {
   group: SidebarWorkspaceGroup;
   collapsed: boolean;
+  selectionPosition: number;
   projectIconByProjectViewKey: ReadonlyMap<string, string | null>;
   shortcutIndex: Map<string, number>;
   showShortcutBadges: boolean;
@@ -371,7 +374,7 @@ function StatusGroupRows({
     () => (collapsed ? [] : visibleWorkspaces.map(toSidebarSelectionTarget)),
     [collapsed, visibleWorkspaces],
   );
-  useSidebarSelectionSegment(`status:${group.key}`, selectionTargets);
+  useSidebarSelectionSegment(`status:${group.key}`, selectionPosition, selectionTargets);
 
   return (
     <View style={collapsed ? undefined : styles.statusGroupBlockExpanded}>
