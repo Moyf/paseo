@@ -47,6 +47,8 @@ function Row({ rowKey, onPress }: { rowKey: string; onPress: () => void }): Reac
     if (consumeWorkspaceRowPressSuppression()) {
       return;
     }
+    // Plain press = single selection: it is the base a ctrl press adds to and a shift press
+    // extends from.
     useSidebarSelectionStore
       .getState()
       .handleNavigatePress({ serverId: "s1", workspaceId: rowKey, workspaceKey: `s1:${rowKey}` });
@@ -132,14 +134,13 @@ describe("pointer-level multi-select over real react-native-web primitives", () 
     expect(selectionKeys()).toEqual(["s1:a", "s1:b", "s1:c"]);
   });
 
-  it("a plain pointerup is a no-op and does not arm the press suppression", () => {
-    mountRow("a", vi.fn())({ ctrlKey: true });
-    expect(selectionKeys()).toEqual(["s1:a"]);
-    // The plain click's pointerup carries no intent; navigation happens in the synthesized
-    // press, which synthetic events cannot drive — the store-level anchor rule is covered by
-    // sidebar-selection-store.test.ts.
-    mountRow("b", vi.fn())({});
-    expect(selectionKeys()).toEqual(["s1:a"]);
-    expect(consumeWorkspaceRowPressSuppression()).toBe(false);
+  it("a plain click is the base: the next ctrl click adds it on top", () => {
+    // The navigation press itself cannot fire from synthetic events, so drive the store the way
+    // the press handler would and continue with a ctrl press on another row.
+    useSidebarSelectionStore
+      .getState()
+      .handleNavigatePress({ serverId: "s1", workspaceId: "a", workspaceKey: "s1:a" });
+    mountRow("b", vi.fn())({ ctrlKey: true });
+    expect(selectionKeys()).toEqual(["s1:a", "s1:b"]);
   });
 });

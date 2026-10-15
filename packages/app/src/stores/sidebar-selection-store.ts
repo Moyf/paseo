@@ -21,9 +21,9 @@ interface SidebarSelectionState {
   setOrder: (order: readonly SidebarSelectionTarget[]) => void;
   handleSelectPress: (target: SidebarSelectionTarget, options: { range: boolean }) => void;
   /**
-   * A plain press navigates without selecting, but it still moves the range anchor: the next
-   * shift press extends from the row that was just navigated to, the way file managers extend
-   * from the last-clicked row.
+   * A plain press is a single selection: it navigates, replaces any multi-selection with just
+   * this row, and moves the range anchor — so a Ctrl press after it adds to it and a Shift press
+   * extends from it, the way file managers extend from the last-clicked row.
    */
   handleNavigatePress: (target: SidebarSelectionTarget) => void;
   clear: () => void;
@@ -114,9 +114,12 @@ export const useSidebarSelectionStore = create<SidebarSelectionState>((set, get)
     });
   },
   handleNavigatePress: (target) =>
+    // A plain press is a single selection: it navigates and resets whatever multi-selection was
+    // building to just this row, which is then the base a Ctrl press adds to and a Shift press
+    // extends from — the file-manager flow.
     set({
-      selected: [],
-      selectedKeys: emptySidebarSelectionTargetSet,
+      selected: [target],
+      selectedKeys: toKeySet([target]),
       anchorKey: target.workspaceKey,
     }),
   clear: () => set({ selected: [], selectedKeys: emptySidebarSelectionTargetSet, anchorKey: null }),
