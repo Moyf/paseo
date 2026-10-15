@@ -14,6 +14,7 @@ import { getHostRuntimeStore } from "@/runtime/host-runtime";
 import { confirmRiskyWorktreeArchive } from "@/git/worktree-archive-warning";
 import { markWorkspaceUnread } from "@/workspace/mark-unread";
 import { archiveWorkspacesOptimistically } from "@/workspace/workspace-archive";
+import type { WorkspaceArchiveFailure } from "@/workspace/workspace-archive";
 import { redirectIfArchivingActiveWorkspace } from "@/utils/sidebar-workspace-archive-redirect";
 
 /** A selected row resolved against the live session store; `workspace` is null when it is gone. */
@@ -99,6 +100,20 @@ function purgeArchivedWorkspaceState(input: { serverId: string; workspaceId: str
   if (workspaceKey) {
     useWorkspaceLayoutStore.getState().purgeWorkspace(workspaceKey);
   }
+}
+
+/**
+ * Archive failures leave the workspace alive, so its saved layout must survive with it. Pure so
+ * the survived/failed split is testable without the archive round-trip.
+ */
+export function selectPurgedTargets(
+  confirmed: readonly SidebarSelectionTarget[],
+  failures: readonly WorkspaceArchiveFailure[],
+): SidebarSelectionTarget[] {
+  const failedKeys = new Set(
+    failures.map((failure) => `${failure.serverId}:${failure.workspaceId}`),
+  );
+  return confirmed.filter((target) => !failedKeys.has(`${target.serverId}:${target.workspaceId}`));
 }
 
 /**
@@ -204,7 +219,8 @@ export function useSidebarBatchWorkspaceActions(): {
         getClient: (serverId) => getHostRuntimeStore().getClient(serverId),
         workspaces: confirmed,
       });
-      for (const target of confirmed) {
+      // A failed archive leaves the workspace alive, so its saved layout must survive with it.
+      for (const target of selectPurgedTargets(confirmed, failures)) {
         purgeArchivedWorkspaceState(target);
       }
       if (failures.length > 0) {
