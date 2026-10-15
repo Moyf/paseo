@@ -111,22 +111,29 @@ describe("useSidebarSelectionStore", () => {
     expect(state.anchorKey).toBeNull();
   });
 
-  it("a plain navigation press clears the selection but keeps itself as the range anchor", () => {
+  it("a plain press selects just that row, so the next ctrl press adds on top of it", () => {
     const store = useSidebarSelectionStore.getState();
     store.handleSelectPress(target("a"), { range: false });
     store.handleSelectPress(target("c"), { range: true });
     expect(useSidebarSelectionStore.getState().selected.length).toBe(3);
 
-    // The user plain-clicks row d — it navigates, drops the selection, and the next shift press
-    // extends from d rather than from nothing.
+    // The user plain-clicks row d — it navigates and the multi-selection resets to just d.
     useSidebarSelectionStore.getState().handleNavigatePress(target("d", "s2"));
     const state = useSidebarSelectionStore.getState();
-    expect(state.selected).toEqual([]);
+    expect(state.selected.map((entry) => entry.workspaceKey)).toEqual(["s2:d"]);
     expect(state.anchorKey).toBe("s2:d");
 
-    useSidebarSelectionStore.getState().handleSelectPress(target("b"), { range: true });
+    // A ctrl press then adds on top of the plain-clicked row.
+    useSidebarSelectionStore.getState().handleSelectPress(target("b"), { range: false });
     expect(useSidebarSelectionStore.getState().selected.map((entry) => entry.workspaceKey)).toEqual(
-      ["s1:b", "s1:c", "s2:d"],
+      ["s2:d", "s1:b"],
+    );
+
+    // And a shift press extends from the last-pressed row (the ctrl press moved the anchor),
+    // replacing the selection with the anchor..target slice.
+    useSidebarSelectionStore.getState().handleSelectPress(target("e"), { range: true });
+    expect(useSidebarSelectionStore.getState().selected.map((entry) => entry.workspaceKey)).toEqual(
+      ["s1:b", "s1:c", "s2:d", "s1:e"],
     );
   });
 
