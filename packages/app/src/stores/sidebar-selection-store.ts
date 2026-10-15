@@ -10,6 +10,12 @@ export interface SidebarSelectionTarget {
 
 interface SidebarSelectionSegment {
   id: string;
+  /**
+   * The section's visual position, supplied by the renderer (pinned = 0, then each group in
+   * render order). Sections appear and disappear as statuses and filters change, so registration
+   * order cannot be trusted to match what the user sees — the flat order sorts on this.
+   */
+  position: number;
   targets: readonly SidebarSelectionTarget[];
 }
 
@@ -26,8 +32,8 @@ interface SidebarSelectionState {
   /** Derived set of selected keys, so a row can ask "am I in it" without scanning. */
   selectedKeys: ReadonlySet<string>;
   anchorKey: string | null;
-  /** Registers (or replaces) one section's rendered rows in place; an empty list keeps the slot but contributes no rows. */
-  setSegment: (id: string, targets: readonly SidebarSelectionTarget[]) => void;
+  /** Registers (or replaces) one section's rendered rows at a visual position; an empty list keeps the slot but contributes no rows. */
+  setSegment: (id: string, position: number, targets: readonly SidebarSelectionTarget[]) => void;
   removeSegment: (id: string) => void;
   /** Whole-order registration, for tests; production lists register segments. */
   setOrder: (order: readonly SidebarSelectionTarget[]) => void;
@@ -85,16 +91,19 @@ export function computeToggleSelection(
 }
 
 export const useSidebarSelectionStore = create<SidebarSelectionState>((set, get) => {
-  // Recomputes the derived order from the registered segments. Selection and anchor are
-  // deliberately untouched here: a section updating its rows ("show more", a collapse, a
-  // re-render with fresh objects) must never erase what the user already selected — batch
-  // actions resolve each selected row against live state and skip rows that are gone.
+  // Recomputes the derived order from the registered segments, sorted by each section's visual
+  // position. Selection and anchor are deliberately untouched here: a section updating its rows
+  // ("show more", a collapse, a re-render with fresh objects) must never erase what the user
+  // already selected — batch actions resolve each selected row against live state and skip rows
+  // that are gone.
   function applySegments(segments: readonly SidebarSelectionSegment[]): void {
     const previous = get().segments;
     if (previous === segments) {
       return;
     }
-    const order = segments.flatMap((segment) => segment.targets);
+    const order = [...segments]
+      .sort((left, right) => left.position - right.position)
+      .flatMap((segment) => segment.targets);
     set({ segments, order });
   }
 
@@ -104,19 +113,20 @@ export const useSidebarSelectionStore = create<SidebarSelectionState>((set, get)
     selected: [],
     selectedKeys: emptySidebarSelectionTargetSet,
     anchorKey: null,
-    setSegment: (id, targets) => {
+    setSegment: (id, position, targets) => {
       const existing = get().segments;
       const current = existing.find((segment) => segment.id === id);
-      // Same reference: nothing rendered differently, so do not touch derived state.
-      if (current && current.targets === targets) {
+      // Same reference and position: nothing rendered differently, so do not touch derived state.
+      if (current && current.targets === targets && current.position === position) {
         return;
       }
-      // An existing slot updates in place, so a collapsed-then-reopened section keeps its
-      // visual position; only genuinely new sections append.
+      // An existing slot updates in place, so a section that disappears and comes back (a status
+      // group appearing again, a collapsed group reopening) lands in its own visual position
+      // rather than at the end; only genuinely new sections join the list.
       applySegments(
         current
-          ? existing.map((segment) => (segment.id === id ? { id, targets } : segment))
-          : [...existing, { id, targets }],
+          ? existing.map((segment) => (segment.id === id ? { id, position, targets } : segment))
+          : [...existing, { id, position, targets }],
       );
     },
     removeSegment: (id) => {
@@ -129,7 +139,7 @@ export const useSidebarSelectionStore = create<SidebarSelectionState>((set, get)
       applySegments(existing.filter((segment) => segment.id !== id));
     },
     setOrder: (order) => {
-      get().setSegment(WHOLE_ORDER_SEGMENT_ID, order);
+      get().setSegment(WHOLE_ORDER_SEGMENT_ID, 0, order);
     },
     handleSelectPress: (target, { range }) => {
       const { order, anchorKey, selected } = get();
@@ -165,17 +175,19 @@ export const useSidebarSelectionStore = create<SidebarSelectionState>((set, get)
 
 /**
  * Registers one list section's rendered rows (a pinned section, a group, a project block) under
- * a stable id. Row updates replace the section's rows in place — the slot and the selection
- * survive "show more", collapses, and re-renders — and only unmounting the section removes it.
+ * a stable id at the section's visual position. Row updates replace the section's rows in
+ * place — the slot, its position, and the selection survive "show more", collapses, and
+ * re-renders — and only unmounting the section removes it.
  */
 export function useSidebarSelectionSegment(
   id: string,
+  position: number,
   targets: readonly SidebarSelectionTarget[],
 ): void {
   useEffect(() => {
-    useSidebarSelectionStore.getState().setSegment(id, targets);
+    useSidebarSelectionStore.getState().setSegment(id, position, targets);
     return () => {
       useSidebarSelectionStore.getState().removeSegment(id);
     };
-  }, [id, targets]);
+  }, [id, position, targets]);
 }

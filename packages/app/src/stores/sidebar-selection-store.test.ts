@@ -72,8 +72,8 @@ describe("useSidebarSelectionStore", () => {
     const store = useSidebarSelectionStore.getState();
     store.clear();
     store.removeSegment(WHOLE_ORDER_SEGMENT_ID);
-    store.setSegment("a", [target("a"), target("b")]);
-    store.setSegment("b", [target("c")]);
+    store.setSegment("a", 1, [target("a"), target("b")]);
+    store.setSegment("b", 2, [target("c")]);
     const state = useSidebarSelectionStore.getState();
     expect(state.segments.map((segment) => segment.id)).toEqual(["a", "b"]);
     expect(state.order.map((entry) => entry.workspaceKey)).toEqual(["s1:a", "s1:b", "s1:c"]);
@@ -98,14 +98,14 @@ describe("useSidebarSelectionStore", () => {
     store.clear();
     store.removeSegment(WHOLE_ORDER_SEGMENT_ID);
     // Three sections registered in visual order: a, b, c.
-    store.setSegment("a", [target("a")]);
-    store.setSegment("b", [target("b")]);
-    store.setSegment("c", [target("c")]);
+    store.setSegment("a", 1, [target("a")]);
+    store.setSegment("b", 2, [target("b")]);
+    store.setSegment("c", 3, [target("c")]);
 
     // The user selects across b's rows, then b renders MORE rows ("show more").
     store.handleSelectPress(target("b"), { range: false });
     store.handleSelectPress(target("a"), { range: false });
-    store.setSegment("b", [target("b"), target("b2")]);
+    store.setSegment("b", 2, [target("b"), target("b2")]);
 
     // The selection survives the row update — nothing was erased.
     expect(useSidebarSelectionStore.getState().selected.map((entry) => entry.workspaceKey)).toEqual(
@@ -113,12 +113,46 @@ describe("useSidebarSelectionStore", () => {
     );
 
     // Collapsing b empties its slot without deleting it, so reopening puts it back in place.
-    store.setSegment("b", []);
+    store.setSegment("b", 2, []);
     expect(useSidebarSelectionStore.getState().order.map((entry) => entry.workspaceKey)).toEqual([
       "s1:a",
       "s1:c",
     ]);
-    store.setSegment("b", [target("b"), target("b2")]);
+    store.setSegment("b", 2, [target("b"), target("b2")]);
+    expect(useSidebarSelectionStore.getState().order.map((entry) => entry.workspaceKey)).toEqual([
+      "s1:a",
+      "s1:b",
+      "s1:b2",
+      "s1:c",
+    ]);
+  });
+
+  it("segments sort by their explicit visual position, not registration order", () => {
+    const store = useSidebarSelectionStore.getState();
+    store.clear();
+    store.removeSegment(WHOLE_ORDER_SEGMENT_ID);
+    // A status group can appear after sections that visually sit behind it (a workspace failing
+    // while only the done group rendered) — its position places it where the user sees it.
+    store.setSegment("done", 3, [target("c")]);
+    store.setSegment("running", 2, [target("b")]);
+    expect(useSidebarSelectionStore.getState().order.map((entry) => entry.workspaceKey)).toEqual([
+      "s1:b",
+      "s1:c",
+    ]);
+    store.setSegment("failed", 1, [target("a")]);
+    expect(useSidebarSelectionStore.getState().order.map((entry) => entry.workspaceKey)).toEqual([
+      "s1:a",
+      "s1:b",
+      "s1:c",
+    ]);
+
+    // And a collapsed-then-reopened group returns to its own position, not the end.
+    store.setSegment("running", 2, []);
+    expect(useSidebarSelectionStore.getState().order.map((entry) => entry.workspaceKey)).toEqual([
+      "s1:a",
+      "s1:c",
+    ]);
+    store.setSegment("running", 2, [target("b"), target("b2")]);
     expect(useSidebarSelectionStore.getState().order.map((entry) => entry.workspaceKey)).toEqual([
       "s1:a",
       "s1:b",
@@ -131,10 +165,21 @@ describe("useSidebarSelectionStore", () => {
     const store = useSidebarSelectionStore.getState();
     store.clear();
     const targets = [target("a")];
-    store.setSegment("a", targets);
+    store.setSegment("a", 1, targets);
     store.handleSelectPress(target("a"), { range: false });
     const before = useSidebarSelectionStore.getState().selected;
-    store.setSegment("a", targets);
+    store.setSegment("a", 1, targets);
+    expect(useSidebarSelectionStore.getState().selected).toBe(before);
+  });
+
+  it("re-registering the same targets reference does not touch derived state", () => {
+    const store = useSidebarSelectionStore.getState();
+    store.clear();
+    const targets = [target("a")];
+    store.setSegment("a", 1, targets);
+    store.handleSelectPress(target("a"), { range: false });
+    const before = useSidebarSelectionStore.getState().selected;
+    store.setSegment("a", 1, targets);
     expect(useSidebarSelectionStore.getState().selected).toBe(before);
   });
 
