@@ -7,4 +7,5 @@ export const FORK_BUILD_META: ForkBuildMeta = {
   version: null,
   builtAt: null,
   commit: null,
+  commitTime: null,
 };
