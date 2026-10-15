@@ -36,10 +36,12 @@ import type { SidebarSurfaceBackdrop } from "@/styles/surface-backdrop";
 import { getSidebarRowBackdrop } from "@/components/sidebar/sidebar-row-backdrop";
 import {
   captureWorkspaceRowPointerModifiers,
-  consumeWorkspaceRowPressIntent,
+  consumeWorkspaceRowPointerUpIntent,
+  consumeWorkspaceRowPressSuppression,
 } from "@/components/sidebar/press-modifiers";
 import type { SidebarSelectionTarget } from "@/stores/sidebar-selection-store";
 import { useSidebarSelectionStore } from "@/stores/sidebar-selection-store";
+import { useSidebarBatchWorkspaceActions } from "@/hooks/use-sidebar-batch-actions";
 import { type GestureType } from "react-native-gesture-handler";
 import { WorkspaceRenameModal } from "@/components/workspace-rename-modal";
 import { useWorkspaceClipboardActions } from "@/hooks/use-workspace-clipboard-actions";
@@ -1064,7 +1066,7 @@ function ProjectHeaderRow({
   );
 }
 
-function WorkspaceRowInner({
+export function WorkspaceRowInner({
   workspace,
   hostBadge,
   leadingProjectName,
@@ -1118,18 +1120,28 @@ function WorkspaceRowInner({
     didLongPressRef: interaction.didLongPressRef,
   });
   const handlePress = useCallback(() => {
+    // Web only: modifier presses were already applied at pointerup (the responder system never
+    // delivers Ctrl clicks as presses), and the suppression flag says this press is one of them.
+    // A plain press navigates, clears the selection, and becomes the next range anchor.
     if (platformIsWeb) {
-      const intent = consumeWorkspaceRowPressIntent();
-      if (intent) {
-        useSidebarSelectionStore.getState().handleSelectPress(toSidebarSelectionTarget(workspace), {
-          range: intent.kind === "range",
-        });
+      if (consumeWorkspaceRowPressSuppression()) {
         return;
       }
-      useSidebarSelectionStore.getState().clear();
+      useSidebarSelectionStore.getState().handleNavigatePress(toSidebarSelectionTarget(workspace));
     }
     handleNavigatePress();
   }, [handleNavigatePress, workspace]);
+  const handleRowPointerUp = useCallback(() => {
+    if (!platformIsWeb) {
+      return;
+    }
+    const intent = consumeWorkspaceRowPointerUpIntent();
+    if (intent) {
+      useSidebarSelectionStore.getState().handleSelectPress(toSidebarSelectionTarget(workspace), {
+        range: intent.kind === "range",
+      });
+    }
+  }, [workspace]);
   const handleWorkspacePressIn = useCallback(
     (event: GestureResponderEvent) => {
       setIsPressed(true);
@@ -1170,6 +1182,7 @@ function WorkspaceRowInner({
             ref={dragHandleProps?.setActivatorNodeRef as unknown as Ref<View>}
             style={styles.workspaceRowContainer}
             onPointerDown={captureWorkspaceRowPointerModifiers}
+            onPointerUp={handleRowPointerUp}
             {...hoverHandlers}
           >
             <SidebarWorkspaceContextMenu
@@ -1353,12 +1366,23 @@ function WorkspaceRowWithMenu({
     });
   }, [markUnread, toast]);
 
+  // With a multi-selection that includes this row, the archive shortcut archives the whole
+  // selection — each worktree still gets its risk confirmation — instead of just the active row.
+  const isBatchRow = useSidebarSelectionStore(
+    (state) => state.selected.length > 1 && state.selectedKeys.has(workspace.workspaceKey),
+  );
+  const { archive: batchArchive } = useSidebarBatchWorkspaceActions();
+
   useKeyboardActionHandler({
     handlerId: `workspace-archive-${workspace.workspaceKey}`,
     actions: ["workspace.archive"],
     enabled: selected && !isArchiving,
     priority: 0,
     handle: () => {
+      if (isBatchRow) {
+        void batchArchive(useSidebarSelectionStore.getState().selected);
+        return true;
+      }
       handleArchive();
       return true;
     },
