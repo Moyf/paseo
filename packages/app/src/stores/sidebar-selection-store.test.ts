@@ -3,6 +3,7 @@ import {
   computeRangeSelection,
   computeToggleSelection,
   useSidebarSelectionStore,
+  WHOLE_ORDER_SEGMENT_ID,
   type SidebarSelectionTarget,
 } from "@/stores/sidebar-selection-store";
 
@@ -55,8 +56,51 @@ describe("computeToggleSelection", () => {
 
 describe("useSidebarSelectionStore", () => {
   beforeEach(() => {
-    useSidebarSelectionStore.getState().clear();
-    useSidebarSelectionStore.getState().setOrder(ORDER);
+    const store = useSidebarSelectionStore.getState();
+    store.clear();
+    // clear() keeps the registered segments (production lists re-register on their own), so the
+    // tests drop them explicitly to stay isolated from each other.
+    for (const segment of store.segments) {
+      if (segment.id !== WHOLE_ORDER_SEGMENT_ID) {
+        store.removeSegment(segment.id);
+      }
+    }
+    store.setOrder(ORDER);
+  });
+
+  it("segments compose the flat order in registration order and prune on removal", () => {
+    const store = useSidebarSelectionStore.getState();
+    store.clear();
+    store.setOrder([]);
+    store.setSegment("a", [target("a"), target("b")]);
+    store.setSegment("b", [target("c")]);
+    const state = useSidebarSelectionStore.getState();
+    expect(state.segments.map((segment) => segment.id)).toEqual(["a", "b"]);
+    expect(state.order.map((entry) => entry.workspaceKey)).toEqual(["s1:a", "s1:b", "s1:c"]);
+
+    store.handleSelectPress(target("a"), { range: false });
+    store.handleSelectPress(target("c"), { range: true });
+    expect(useSidebarSelectionStore.getState().selected.length).toBe(3);
+
+    // Removing a section (a collapse, a mode switch) takes its rows out of the selection too.
+    store.removeSegment("a");
+    expect(useSidebarSelectionStore.getState().order.map((entry) => entry.workspaceKey)).toEqual([
+      "s1:c",
+    ]);
+    expect(useSidebarSelectionStore.getState().selected.map((entry) => entry.workspaceKey)).toEqual(
+      ["s1:c"],
+    );
+  });
+
+  it("re-registering the same targets reference does not touch derived state", () => {
+    const store = useSidebarSelectionStore.getState();
+    store.clear();
+    const targets = [target("a")];
+    store.setSegment("a", targets);
+    store.handleSelectPress(target("a"), { range: false });
+    const before = useSidebarSelectionStore.getState().selected;
+    store.setSegment("a", targets);
+    expect(useSidebarSelectionStore.getState().selected).toBe(before);
   });
 
   it("a plain press selects one row and moves the anchor", () => {

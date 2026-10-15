@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { create } from "zustand";
 
 /** The identity triple every sidebar row carries, and the only thing selection needs. */
@@ -7,17 +8,28 @@ export interface SidebarSelectionTarget {
   workspaceKey: string;
 }
 
+interface SidebarSelectionSegment {
+  id: string;
+  targets: readonly SidebarSelectionTarget[];
+}
+
 interface SidebarSelectionState {
   /**
    * The sidebar's rows in flat visual order — pinned section first, then each group's rows —
-   * registered by whichever list renderer is mounted. Shift ranges are slices of this order, so
-   * a range can cross section boundaries the way the rows visually line up.
+   * derived from the segments the mounted list renderer registers. Only rows that actually
+   * render belong here: a Shift range must never reach past a "show more" boundary into rows
+   * the user cannot see.
    */
   order: readonly SidebarSelectionTarget[];
+  segments: readonly SidebarSelectionSegment[];
   selected: readonly SidebarSelectionTarget[];
   /** Derived set of selected keys, so a row can ask "am I in it" without scanning. */
   selectedKeys: ReadonlySet<string>;
   anchorKey: string | null;
+  /** Registers (or replaces) one section's rendered rows; an empty list removes the section. */
+  setSegment: (id: string, targets: readonly SidebarSelectionTarget[]) => void;
+  removeSegment: (id: string) => void;
+  /** Whole-order registration, for tests; production lists register segments. */
   setOrder: (order: readonly SidebarSelectionTarget[]) => void;
   handleSelectPress: (target: SidebarSelectionTarget, options: { range: boolean }) => void;
   /**
@@ -30,6 +42,9 @@ interface SidebarSelectionState {
 }
 
 export const emptySidebarSelectionTargetSet: ReadonlySet<string> = new Set();
+
+/** The whole-order segment `setOrder` writes; exported for test isolation. */
+export const WHOLE_ORDER_SEGMENT_ID = "__all__";
 
 function toKeySet(targets: readonly SidebarSelectionTarget[]): ReadonlySet<string> {
   return new Set(targets.map((target) => target.workspaceKey));
@@ -69,58 +84,108 @@ export function computeToggleSelection(
   return { selected: [...selected, target], removed: false };
 }
 
-export const useSidebarSelectionStore = create<SidebarSelectionState>((set, get) => ({
-  order: [],
-  selected: [],
-  selectedKeys: emptySidebarSelectionTargetSet,
-  anchorKey: null,
-  setOrder: (order) => {
+export const useSidebarSelectionStore = create<SidebarSelectionState>((set, get) => {
+  // Recomputes the derived order from the registered segments and prunes the selection to it:
+  // rows that left the visible order (archived, filtered, collapsed away, hidden behind a
+  // "show more") cannot be acted on by a menu the user can still see, so they fall out of the
+  // selection with the order.
+  function applySegments(segments: readonly SidebarSelectionSegment[]): void {
+    const previous = get().segments;
+    if (previous === segments) {
+      return;
+    }
+    const order = segments.flatMap((segment) => segment.targets);
     const { selected, anchorKey } = get();
-    // Rows that left the visible order (archived, filtered, collapsed away) cannot be acted on
-    // by a menu the user can still see, so they fall out of the selection with the order.
     const keys = toKeySet(order);
     const nextSelected = selected.filter((target) => keys.has(target.workspaceKey));
     const nextAnchorKey = anchorKey !== null && keys.has(anchorKey) ? anchorKey : null;
-    if (
-      nextSelected.length === selected.length &&
-      nextAnchorKey === anchorKey &&
-      get().order === order
-    ) {
-      return;
-    }
     set({
+      segments,
       order,
       selected: nextSelected,
       selectedKeys: toKeySet(nextSelected),
       anchorKey: nextAnchorKey,
     });
-  },
-  handleSelectPress: (target, { range }) => {
-    const { order, anchorKey, selected } = get();
-    if (range) {
-      const anchor =
-        anchorKey !== null && order.some((entry) => entry.workspaceKey === anchorKey)
-          ? anchorKey
-          : target.workspaceKey;
-      const next = computeRangeSelection(order, anchor, target.workspaceKey);
-      set({ selected: next, selectedKeys: toKeySet(next), anchorKey: anchor });
-      return;
-    }
-    const { selected: next, removed } = computeToggleSelection(selected, target);
-    set({
-      selected: next,
-      selectedKeys: toKeySet(next),
-      anchorKey: removed && next.length === 0 ? null : target.workspaceKey,
-    });
-  },
-  handleNavigatePress: (target) =>
-    // A plain press is a single selection: it navigates and resets whatever multi-selection was
-    // building to just this row, which is then the base a Ctrl press adds to and a Shift press
-    // extends from — the file-manager flow.
-    set({
-      selected: [target],
-      selectedKeys: toKeySet([target]),
-      anchorKey: target.workspaceKey,
-    }),
-  clear: () => set({ selected: [], selectedKeys: emptySidebarSelectionTargetSet, anchorKey: null }),
-}));
+  }
+
+  return {
+    order: [],
+    segments: [],
+    selected: [],
+    selectedKeys: emptySidebarSelectionTargetSet,
+    anchorKey: null,
+    setSegment: (id, targets) => {
+      if (targets.length === 0) {
+        get().removeSegment(id);
+        return;
+      }
+      const existing = get().segments;
+      const current = existing.find((segment) => segment.id === id);
+      // Same reference: nothing rendered differently, so do not touch derived state.
+      if (current && current.targets === targets) {
+        return;
+      }
+      applySegments(
+        current
+          ? existing.map((segment) => (segment.id === id ? { id, targets } : segment))
+          : [...existing, { id, targets }],
+      );
+    },
+    removeSegment: (id) => {
+      const existing = get().segments;
+      if (!existing.some((segment) => segment.id === id)) {
+        return;
+      }
+      applySegments(existing.filter((segment) => segment.id !== id));
+    },
+    setOrder: (order) => {
+      get().setSegment(WHOLE_ORDER_SEGMENT_ID, order);
+    },
+    handleSelectPress: (target, { range }) => {
+      const { order, anchorKey, selected } = get();
+      if (range) {
+        const anchor =
+          anchorKey !== null && order.some((entry) => entry.workspaceKey === anchorKey)
+            ? anchorKey
+            : target.workspaceKey;
+        const next = computeRangeSelection(order, anchor, target.workspaceKey);
+        set({ selected: next, selectedKeys: toKeySet(next), anchorKey: anchor });
+        return;
+      }
+      const { selected: next, removed } = computeToggleSelection(selected, target);
+      set({
+        selected: next,
+        selectedKeys: toKeySet(next),
+        anchorKey: removed && next.length === 0 ? null : target.workspaceKey,
+      });
+    },
+    handleNavigatePress: (target) =>
+      // A plain press is a single selection: it navigates and resets whatever multi-selection was
+      // building to just this row, which is then the base a Ctrl press adds to and a Shift press
+      // extends from — the file-manager flow.
+      set({
+        selected: [target],
+        selectedKeys: toKeySet([target]),
+        anchorKey: target.workspaceKey,
+      }),
+    clear: () =>
+      set({ selected: [], selectedKeys: emptySidebarSelectionTargetSet, anchorKey: null }),
+  };
+});
+
+/**
+ * Registers one list section's rendered rows (a pinned section, a group, a project block) under
+ * a stable id for as long as the section renders. An empty list drops the section's slot — a
+ * collapsed section contributes no rows.
+ */
+export function useSidebarSelectionSegment(
+  id: string,
+  targets: readonly SidebarSelectionTarget[],
+): void {
+  useEffect(() => {
+    useSidebarSelectionStore.getState().setSegment(id, targets);
+    return () => {
+      useSidebarSelectionStore.getState().removeSegment(id);
+    };
+  }, [id, targets]);
+}
