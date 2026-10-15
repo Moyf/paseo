@@ -26,7 +26,7 @@ interface SidebarSelectionState {
   /** Derived set of selected keys, so a row can ask "am I in it" without scanning. */
   selectedKeys: ReadonlySet<string>;
   anchorKey: string | null;
-  /** Registers (or replaces) one section's rendered rows; an empty list removes the section. */
+  /** Registers (or replaces) one section's rendered rows in place; an empty list keeps the slot but contributes no rows. */
   setSegment: (id: string, targets: readonly SidebarSelectionTarget[]) => void;
   removeSegment: (id: string) => void;
   /** Whole-order registration, for tests; production lists register segments. */
@@ -85,27 +85,17 @@ export function computeToggleSelection(
 }
 
 export const useSidebarSelectionStore = create<SidebarSelectionState>((set, get) => {
-  // Recomputes the derived order from the registered segments and prunes the selection to it:
-  // rows that left the visible order (archived, filtered, collapsed away, hidden behind a
-  // "show more") cannot be acted on by a menu the user can still see, so they fall out of the
-  // selection with the order.
+  // Recomputes the derived order from the registered segments. Selection and anchor are
+  // deliberately untouched here: a section updating its rows ("show more", a collapse, a
+  // re-render with fresh objects) must never erase what the user already selected — batch
+  // actions resolve each selected row against live state and skip rows that are gone.
   function applySegments(segments: readonly SidebarSelectionSegment[]): void {
     const previous = get().segments;
     if (previous === segments) {
       return;
     }
     const order = segments.flatMap((segment) => segment.targets);
-    const { selected, anchorKey } = get();
-    const keys = toKeySet(order);
-    const nextSelected = selected.filter((target) => keys.has(target.workspaceKey));
-    const nextAnchorKey = anchorKey !== null && keys.has(anchorKey) ? anchorKey : null;
-    set({
-      segments,
-      order,
-      selected: nextSelected,
-      selectedKeys: toKeySet(nextSelected),
-      anchorKey: nextAnchorKey,
-    });
+    set({ segments, order });
   }
 
   return {
@@ -115,16 +105,14 @@ export const useSidebarSelectionStore = create<SidebarSelectionState>((set, get)
     selectedKeys: emptySidebarSelectionTargetSet,
     anchorKey: null,
     setSegment: (id, targets) => {
-      if (targets.length === 0) {
-        get().removeSegment(id);
-        return;
-      }
       const existing = get().segments;
       const current = existing.find((segment) => segment.id === id);
       // Same reference: nothing rendered differently, so do not touch derived state.
       if (current && current.targets === targets) {
         return;
       }
+      // An existing slot updates in place, so a collapsed-then-reopened section keeps its
+      // visual position; only genuinely new sections append.
       applySegments(
         current
           ? existing.map((segment) => (segment.id === id ? { id, targets } : segment))
@@ -132,6 +120,8 @@ export const useSidebarSelectionStore = create<SidebarSelectionState>((set, get)
       );
     },
     removeSegment: (id) => {
+      // Unmount only (a mode switch, a filter that unrenders the section). Row changes go
+      // through setSegment's in-place update, which keeps both the slot and the selection.
       const existing = get().segments;
       if (!existing.some((segment) => segment.id === id)) {
         return;
@@ -175,8 +165,8 @@ export const useSidebarSelectionStore = create<SidebarSelectionState>((set, get)
 
 /**
  * Registers one list section's rendered rows (a pinned section, a group, a project block) under
- * a stable id for as long as the section renders. An empty list drops the section's slot — a
- * collapsed section contributes no rows.
+ * a stable id. Row updates replace the section's rows in place — the slot and the selection
+ * survive "show more", collapses, and re-renders — and only unmounting the section removes it.
  */
 export function useSidebarSelectionSegment(
   id: string,

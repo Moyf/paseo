@@ -68,10 +68,10 @@ describe("useSidebarSelectionStore", () => {
     store.setOrder(ORDER);
   });
 
-  it("segments compose the flat order in registration order and prune on removal", () => {
+  it("segments compose the flat order in registration order and keep their slot on removal", () => {
     const store = useSidebarSelectionStore.getState();
     store.clear();
-    store.setOrder([]);
+    store.removeSegment(WHOLE_ORDER_SEGMENT_ID);
     store.setSegment("a", [target("a"), target("b")]);
     store.setSegment("b", [target("c")]);
     const state = useSidebarSelectionStore.getState();
@@ -82,14 +82,49 @@ describe("useSidebarSelectionStore", () => {
     store.handleSelectPress(target("c"), { range: true });
     expect(useSidebarSelectionStore.getState().selected.length).toBe(3);
 
-    // Removing a section (a collapse, a mode switch) takes its rows out of the selection too.
+    // Unmounting a section drops its rows from the order but leaves the selection alone —
+    // batch actions re-check every row against live state before acting.
     store.removeSegment("a");
     expect(useSidebarSelectionStore.getState().order.map((entry) => entry.workspaceKey)).toEqual([
       "s1:c",
     ]);
     expect(useSidebarSelectionStore.getState().selected.map((entry) => entry.workspaceKey)).toEqual(
-      ["s1:c"],
+      ["s1:a", "s1:b", "s1:c"],
     );
+  });
+
+  it("a row update updates the section in place: selections and slot positions survive", () => {
+    const store = useSidebarSelectionStore.getState();
+    store.clear();
+    store.removeSegment(WHOLE_ORDER_SEGMENT_ID);
+    // Three sections registered in visual order: a, b, c.
+    store.setSegment("a", [target("a")]);
+    store.setSegment("b", [target("b")]);
+    store.setSegment("c", [target("c")]);
+
+    // The user selects across b's rows, then b renders MORE rows ("show more").
+    store.handleSelectPress(target("b"), { range: false });
+    store.handleSelectPress(target("a"), { range: false });
+    store.setSegment("b", [target("b"), target("b2")]);
+
+    // The selection survives the row update — nothing was erased.
+    expect(useSidebarSelectionStore.getState().selected.map((entry) => entry.workspaceKey)).toEqual(
+      ["s1:b", "s1:a"],
+    );
+
+    // Collapsing b empties its slot without deleting it, so reopening puts it back in place.
+    store.setSegment("b", []);
+    expect(useSidebarSelectionStore.getState().order.map((entry) => entry.workspaceKey)).toEqual([
+      "s1:a",
+      "s1:c",
+    ]);
+    store.setSegment("b", [target("b"), target("b2")]);
+    expect(useSidebarSelectionStore.getState().order.map((entry) => entry.workspaceKey)).toEqual([
+      "s1:a",
+      "s1:b",
+      "s1:b2",
+      "s1:c",
+    ]);
   });
 
   it("re-registering the same targets reference does not touch derived state", () => {
@@ -143,16 +178,19 @@ describe("useSidebarSelectionStore", () => {
     expect(state.anchorKey).toBe("s1:b");
   });
 
-  it("prunes rows that left the visible order and drops a vanished anchor", () => {
+  it("a whole-order update leaves the selection and anchor alone", () => {
     const store = useSidebarSelectionStore.getState();
     store.handleSelectPress(target("a"), { range: false });
     store.handleSelectPress(target("e"), { range: true });
     expect(useSidebarSelectionStore.getState().selected.length).toBe(5);
 
+    // The renderer re-registers a smaller visible order (a filter, a collapse); what the user
+    // selected stays selected, and batch actions re-check rows against live state themselves.
     useSidebarSelectionStore.getState().setOrder([target("b"), target("c"), target("e")]);
     const state = useSidebarSelectionStore.getState();
-    expect(state.selected.map((entry) => entry.workspaceKey)).toEqual(["s1:b", "s1:c", "s1:e"]);
-    expect(state.anchorKey).toBeNull();
+    expect(state.order.map((entry) => entry.workspaceKey)).toEqual(["s1:b", "s1:c", "s1:e"]);
+    expect(state.selected.length).toBe(5);
+    expect(state.anchorKey).toBe("s1:a");
   });
 
   it("a plain press selects just that row, so the next ctrl press adds on top of it", () => {
