@@ -42,10 +42,17 @@ function isApplePlatform(): boolean {
  */
 export function captureWorkspaceRowPointerModifiers(event: unknown): void {
   const modifiers = event as {
+    button?: number | null;
     ctrlKey?: boolean | null;
     metaKey?: boolean | null;
     shiftKey?: boolean | null;
   };
+  // Only the primary button edits the selection: Ctrl+right-click is the context-menu gesture on
+  // Windows/Linux and must leave the selection exactly as it is.
+  if (modifiers.button != null && modifiers.button !== 0) {
+    pendingIntent = null;
+    return;
+  }
   pendingIntent = resolveWorkspaceRowPressIntent({
     applePlatform: isApplePlatform(),
     ctrlKey: modifiers.ctrlKey === true,
