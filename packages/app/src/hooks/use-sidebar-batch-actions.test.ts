@@ -6,6 +6,7 @@ import {
   selectArchivableEntries,
   selectMarkUnreadEligibleEntries,
   selectPinCapableEntries,
+  selectPurgedTargets,
 } from "@/hooks/use-sidebar-batch-actions";
 
 function descriptor(overrides: Partial<WorkspaceDescriptor>): WorkspaceDescriptor {
@@ -77,6 +78,28 @@ describe("selectArchivableEntries", () => {
       entry("archiving", descriptor({ archivingAt: "2026-10-14T00:00:00Z" })),
     ];
     expect(selectArchivableEntries(entries).map((item) => item.workspaceKey)).toEqual(["s1:live"]);
+  });
+});
+
+describe("selectPurgedTargets", () => {
+  it("drops failed archives from the purge so their saved layouts survive", () => {
+    const confirmed = [
+      { serverId: "s1", workspaceId: "ok", workspaceKey: "s1:ok" },
+      { serverId: "s1", workspaceId: "failed", workspaceKey: "s1:failed" },
+      { serverId: "s2", workspaceId: "also-failed", workspaceKey: "s2:also-failed" },
+    ];
+    const failures = [
+      { serverId: "s1", workspaceId: "failed", error: new Error("host disconnected") },
+      { serverId: "s2", workspaceId: "also-failed", error: new Error("host disconnected") },
+    ];
+    expect(selectPurgedTargets(confirmed, failures).map((target) => target.workspaceKey)).toEqual([
+      "s1:ok",
+    ]);
+  });
+
+  it("purges everything when no archive fails", () => {
+    const confirmed = [{ serverId: "s1", workspaceId: "a", workspaceKey: "s1:a" }];
+    expect(selectPurgedTargets(confirmed, [])).toHaveLength(1);
   });
 });
 

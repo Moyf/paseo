@@ -1,7 +1,6 @@
 import {
   memo,
   useCallback,
-  useEffect,
   useMemo,
   useState,
   type MutableRefObject,
@@ -68,7 +67,10 @@ import {
   consumeWorkspaceRowPressSuppression,
 } from "@/components/sidebar/press-modifiers";
 import type { SidebarSelectionTarget } from "@/stores/sidebar-selection-store";
-import { useSidebarSelectionStore } from "@/stores/sidebar-selection-store";
+import {
+  useSidebarSelectionSegment,
+  useSidebarSelectionStore,
+} from "@/stores/sidebar-selection-store";
 import { useSidebarBatchWorkspaceActions } from "@/hooks/use-sidebar-batch-actions";
 import { getStatusDotColor } from "@/utils/status-dot-color";
 import { selectWorkspaceServiceSummary } from "@/components/sidebar/workspace-meta-row";
@@ -178,25 +180,13 @@ export function SidebarStatusWorkspaceList({
     toggleExpanded: togglePinnedWorkspacesExpanded,
   } = useLimitedSidebarGroup(pinnedWorkspaces);
 
-  // The flat visual order of the rows this list paints, mirroring project mode's registration:
-  // pinned chats, then every expanded group's rows. Collapsed groups hide their rows entirely,
-  // so they are left out rather than silently selected.
-  const selectionOrder = useMemo(
-    () => [
-      ...(pinnedCollapsed
-        ? []
-        : pinnedWorkspaces.map((workspace) => toSidebarSelectionTarget(workspace))),
-      ...groups.flatMap((group) =>
-        collapsedWorkspaceGroupKeys.has(group.key)
-          ? []
-          : group.rows.map((workspace) => toSidebarSelectionTarget(workspace)),
-      ),
-    ],
-    [collapsedWorkspaceGroupKeys, groups, pinnedCollapsed, pinnedWorkspaces],
+  // Each section registers only the rows it actually renders, so a Shift range can never reach
+  // past a "show more" boundary or into a collapsed section.
+  const pinnedSelectionTargets = useMemo(
+    () => (pinnedCollapsed ? [] : visiblePinnedWorkspaces.map(toSidebarSelectionTarget)),
+    [pinnedCollapsed, visiblePinnedWorkspaces],
   );
-  useEffect(() => {
-    useSidebarSelectionStore.getState().setOrder(selectionOrder);
-  }, [selectionOrder]);
+  useSidebarSelectionSegment("status:pinned", pinnedSelectionTargets);
 
   const statusShortcutIndex = showShortcutBadges
     ? shortcutIndexByWorkspaceKey
@@ -378,6 +368,11 @@ function StatusGroupRows({
     canToggle: canToggleWorkspaces,
     toggleExpanded: toggleWorkspacesExpanded,
   } = useLimitedSidebarGroup(group.rows);
+  const selectionTargets = useMemo(
+    () => (collapsed ? [] : visibleWorkspaces.map(toSidebarSelectionTarget)),
+    [collapsed, visibleWorkspaces],
+  );
+  useSidebarSelectionSegment(`status:${group.key}`, selectionTargets);
 
   return (
     <View style={collapsed ? undefined : styles.statusGroupBlockExpanded}>

@@ -40,7 +40,10 @@ import {
   consumeWorkspaceRowPressSuppression,
 } from "@/components/sidebar/press-modifiers";
 import type { SidebarSelectionTarget } from "@/stores/sidebar-selection-store";
-import { useSidebarSelectionStore } from "@/stores/sidebar-selection-store";
+import {
+  useSidebarSelectionSegment,
+  useSidebarSelectionStore,
+} from "@/stores/sidebar-selection-store";
 import { useSidebarBatchWorkspaceActions } from "@/hooks/use-sidebar-batch-actions";
 import { type GestureType } from "react-native-gesture-handler";
 import { WorkspaceRenameModal } from "@/components/workspace-rename-modal";
@@ -1666,6 +1669,19 @@ function ProjectBlock({
     canToggle: canToggleWorkspaces,
     toggleExpanded: toggleWorkspacesExpanded,
   } = useLimitedSidebarGroup(project.workspaces);
+  // Each section registers only the rows it actually renders, so a Shift range can never reach
+  // past a "show more" boundary or into a collapsed project.
+  const selectionTargets = useMemo(
+    () =>
+      collapsed
+        ? []
+        : visibleWorkspaces.flatMap((workspace) => {
+            const entry = workspaceEntriesByKey.get(workspace.workspaceKey);
+            return entry ? [toSidebarSelectionTarget(entry)] : [];
+          }),
+    [collapsed, visibleWorkspaces, workspaceEntriesByKey],
+  );
+  useSidebarSelectionSegment(`project:${project.viewKey}`, selectionTargets);
   const rowModel = useMemo(
     () =>
       buildSidebarProjectRowModel({
@@ -2222,37 +2238,27 @@ function ProjectModeList({
   const activeWorkspaceSelection = useActiveWorkspaceSelection();
   const { pinnedChats, unpinnedProjects } = pinnedGroups;
 
-  // The flat visual order of the rows this list paints — pinned chats first, then each expanded
-  // project's rows. Shift ranges are slices of this order, so a range can cross the section
-  // boundary the way the rows visually line up. Collapsed projects hide their rows entirely, so
-  // they are left out rather than silently selected.
-  const selectionOrder = useMemo(
-    () => [
-      ...pinnedChats.flatMap((workspace) => {
-        const entry = workspaceEntriesByKey.get(workspace.workspaceKey);
-        return entry ? [toSidebarSelectionTarget(entry)] : [];
-      }),
-      ...unpinnedProjects.flatMap((project) =>
-        collapsedProjectKeys.has(project.viewKey)
-          ? []
-          : project.workspaces.flatMap((workspace) => {
-              const entry = workspaceEntriesByKey.get(workspace.workspaceKey);
-              return entry ? [toSidebarSelectionTarget(entry)] : [];
-            }),
-      ),
-    ],
-    [collapsedProjectKeys, pinnedChats, unpinnedProjects, workspaceEntriesByKey],
-  );
-  useEffect(() => {
-    useSidebarSelectionStore.getState().setOrder(selectionOrder);
-  }, [selectionOrder]);
-
   const {
     visibleItems: visiblePinnedChats,
     expanded: pinnedChatsExpanded,
     canToggle: canTogglePinnedChats,
     toggleExpanded: togglePinnedChatsExpanded,
   } = useLimitedSidebarGroup(pinnedChats);
+
+  // Each section registers only the rows it actually renders, so a Shift range can never reach
+  // past a "show more" boundary or into a collapsed section.
+  const pinnedSelectionTargets = useMemo(
+    () =>
+      pinnedCollapsed
+        ? []
+        : visiblePinnedChats.flatMap((workspace) => {
+            const entry = workspaceEntriesByKey.get(workspace.workspaceKey);
+            return entry ? [toSidebarSelectionTarget(entry)] : [];
+          }),
+    [pinnedCollapsed, visiblePinnedChats, workspaceEntriesByKey],
+  );
+  useSidebarSelectionSegment("project:pinned", pinnedSelectionTargets);
+
   const nativeScrollGestureProps = useMemo(
     () =>
       parentGestureRef
