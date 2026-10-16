@@ -15,6 +15,10 @@ export function requireOptionalNativeModuleView(): null {
 
 export const NativeModulesProxy: Record<string, unknown> = {};
 
+export class NativeModule {
+  readonly __testStub = true;
+}
+
 export class UnavailabilityError extends Error {
   code = "E_UNAVAILABLE";
 

@@ -117,6 +117,17 @@ export function selectPurgedTargets(
 }
 
 /**
+ * The acted rows whose allSettled request resolved. A batch action deselects only these —
+ * anything the user selected while the requests were in flight stays selected.
+ */
+export function selectSucceededTargets<T extends SidebarSelectionTarget>(
+  acted: readonly T[],
+  results: readonly PromiseSettledResult<unknown>[],
+): T[] {
+  return acted.filter((_, index) => results[index]?.status === "fulfilled");
+}
+
+/**
  * Batch counterparts of the sidebar row actions, written against the multi-selection rather than
  * one workspace. Eligibility is resolved at action time from the live session store, so a row
  * that vanished between menu open and click is skipped instead of failing.
@@ -151,7 +162,9 @@ export function useSidebarBatchWorkspaceActions(): {
         if (failures > 0) {
           toast.error(t("sidebar.workspace.toasts.batchPinFailed", { count: failures }));
         }
-        useSidebarSelectionStore.getState().clear();
+        // Deselect only what this action actually processed: the user may have grown the
+        // selection while the requests were in flight.
+        useSidebarSelectionStore.getState().deselect(selectSucceededTargets(capable, results));
       })();
     },
     [t, toast],
@@ -169,7 +182,7 @@ export function useSidebarBatchWorkspaceActions(): {
       if (failures > 0) {
         toast.error(t("sidebar.workspace.toasts.batchMarkUnreadFailed", { count: failures }));
       }
-      useSidebarSelectionStore.getState().clear();
+      useSidebarSelectionStore.getState().deselect(selectSucceededTargets(eligible, results));
     },
     [t, toast],
   );
@@ -198,7 +211,7 @@ export function useSidebarBatchWorkspaceActions(): {
         });
       }
       if (confirmed.length === 0) {
-        useSidebarSelectionStore.getState().clear();
+        // Everything was declined: nothing happened, so the selection stays as it was.
         return;
       }
 
@@ -231,7 +244,8 @@ export function useSidebarBatchWorkspaceActions(): {
           }),
         );
       }
-      useSidebarSelectionStore.getState().clear();
+      // Deselect only what actually archived — failed rows stay selected (and alive).
+      useSidebarSelectionStore.getState().deselect(selectPurgedTargets(confirmed, failures));
     },
     [activeWorkspaceSelection, t, toast],
   );

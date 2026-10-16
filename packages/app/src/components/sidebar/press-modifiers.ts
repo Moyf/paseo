@@ -21,12 +21,24 @@ export function resolveWorkspaceRowPressIntent(input: {
 
 let pendingIntent: WorkspaceRowPressIntent | null = null;
 let handledAtPointerUp = false;
+let applePlatformOverrideForTests: boolean | null = null;
 
 function isApplePlatform(): boolean {
+  if (applePlatformOverrideForTests !== null) {
+    return applePlatformOverrideForTests;
+  }
   if (Platform.OS !== "web") return false;
   return (
     typeof navigator !== "undefined" && /Mac|iPhone|iPad|iPod/i.test(navigator.userAgent ?? "")
   );
+}
+
+/**
+ * Tests inject the platform instead of monkey-patching `navigator`, which the repository
+ * forbids. Pass null to return to real detection.
+ */
+export function setApplePlatformOverrideForTests(applePlatform: boolean | null): void {
+  applePlatformOverrideForTests = applePlatform;
 }
 
 /**
