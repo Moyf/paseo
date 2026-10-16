@@ -1,9 +1,10 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import {
   captureWorkspaceRowPointerModifiers,
   consumeWorkspaceRowPointerUpIntent,
   consumeWorkspaceRowPressSuppression,
   resolveWorkspaceRowPressIntent,
+  setApplePlatformOverrideForTests,
   type WorkspaceRowPressIntent,
 } from "@/components/sidebar/press-modifiers";
 
@@ -79,17 +80,14 @@ describe("resolveWorkspaceRowPressIntent", () => {
 
 describe("capture and pointerup", () => {
   afterEach(() => {
-    vi.unstubAllGlobals();
+    setApplePlatformOverrideForTests(null);
     captureWorkspaceRowPointerModifiers({});
     consumeWorkspaceRowPointerUpIntent();
     consumeWorkspaceRowPressSuppression();
   });
 
   function stubApplePlatform(isApple: boolean): void {
-    vi.stubGlobal(
-      "navigator",
-      isApple ? { userAgent: "Macintosh; Intel Mac OS X 14_0" } : { userAgent: "Windows NT 10.0" },
-    );
+    setApplePlatformOverrideForTests(isApple);
   }
 
   function pointerEvent(modifiers: { ctrlKey?: boolean; metaKey?: boolean; shiftKey?: boolean }) {

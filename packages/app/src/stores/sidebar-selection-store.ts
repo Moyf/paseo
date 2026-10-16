@@ -44,6 +44,8 @@ interface SidebarSelectionState {
    * extends from it, the way file managers extend from the last-clicked row.
    */
   handleNavigatePress: (target: SidebarSelectionTarget) => void;
+  /** Removes exactly these rows from the selection, leaving anything selected since alone. */
+  deselect: (targets: readonly SidebarSelectionTarget[]) => void;
   clear: () => void;
 }
 
@@ -168,6 +170,18 @@ export const useSidebarSelectionStore = create<SidebarSelectionState>((set, get)
         selectedKeys: toKeySet([target]),
         anchorKey: target.workspaceKey,
       }),
+    deselect: (targets) => {
+      // Removes exactly these rows — a batch action that finished while the user was selecting
+      // more rows must not erase the newer additions.
+      const keys = toKeySet(targets);
+      const { selected, anchorKey } = get();
+      const next = selected.filter((target) => !keys.has(target.workspaceKey));
+      set({
+        selected: next,
+        selectedKeys: toKeySet(next),
+        anchorKey: anchorKey !== null && !keys.has(anchorKey) ? anchorKey : null,
+      });
+    },
     clear: () =>
       set({ selected: [], selectedKeys: emptySidebarSelectionTargetSet, anchorKey: null }),
   };
