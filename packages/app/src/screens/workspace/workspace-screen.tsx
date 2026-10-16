@@ -66,7 +66,10 @@ import {
   openPreferredWorkspaceTarget,
   openWorkspaceTargetBeside,
 } from "@/workspace-tabs/open-beside";
-import { resolveImplicitTerminalPlacement } from "@/workspace-tabs/terminal-open-location";
+import {
+  placeTerminalTabInPane,
+  resolveImplicitTerminalPlacement,
+} from "@/workspace-tabs/terminal-open-location";
 import { openWorkspacePullRequest } from "@/workspace-tabs/open-supporting-view";
 import { type ExplorerCheckoutContext } from "@/stores/explorer-checkout-context";
 import { traceInstant } from "@/performance/native-trace";
@@ -930,16 +933,21 @@ function useWorkspaceTerminalTabActions({
         });
         return;
       }
+      const placement = resolveImplicitTerminalPlacement({
+        isCompact,
+        supportsPaneSplits: supportsDesktopPaneSplits(),
+        persistenceKey,
+        location: terminalOpenLocation,
+        destination,
+      });
+      if (placement) {
+        placeTerminalTabInPane({ workspaceKey: persistenceKey, placement, terminalId });
+        return;
+      }
       openWorkspaceTabFocused(
         persistenceKey,
         { kind: "terminal", terminalId },
-        resolveImplicitTerminalPlacement({
-          isCompact,
-          supportsPaneSplits: supportsDesktopPaneSplits(),
-          persistenceKey,
-          location: terminalOpenLocation,
-          destination,
-        }) ?? paneLocalPlacement(destination.paneId),
+        paneLocalPlacement(destination.paneId),
       );
     },
     [
@@ -955,16 +963,21 @@ function useWorkspaceTerminalTabActions({
       if (!persistenceKey) {
         return;
       }
+      const placement = resolveImplicitTerminalPlacement({
+        isCompact,
+        supportsPaneSplits: supportsDesktopPaneSplits(),
+        persistenceKey,
+        location: terminalOpenLocation,
+        destination: { kind: "open" },
+      });
+      if (placement) {
+        placeTerminalTabInPane({ workspaceKey: persistenceKey, placement, terminalId });
+        return;
+      }
       openWorkspaceTabFocused(
         persistenceKey,
         { kind: "terminal", terminalId },
-        resolveImplicitTerminalPlacement({
-          isCompact,
-          supportsPaneSplits: supportsDesktopPaneSplits(),
-          persistenceKey,
-          location: terminalOpenLocation,
-          destination: { kind: "open" },
-        }) ?? FOCUSED_PANE_PLACEMENT,
+        FOCUSED_PANE_PLACEMENT,
       );
     },
     [isCompact, openWorkspaceTabFocused, persistenceKey, terminalOpenLocation],

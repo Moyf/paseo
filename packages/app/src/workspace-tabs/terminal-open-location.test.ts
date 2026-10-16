@@ -8,8 +8,15 @@ vi.mock("@react-native-async-storage/async-storage", () => ({
   },
 }));
 
-import { useWorkspaceLayoutStore } from "@/stores/workspace-layout-store";
-import { resolveImplicitTerminalPlacement } from "@/workspace-tabs/terminal-open-location";
+import {
+  collectAllTabs,
+  findPaneById,
+  useWorkspaceLayoutStore,
+} from "@/stores/workspace-layout-store";
+import {
+  placeTerminalTabInPane,
+  resolveImplicitTerminalPlacement,
+} from "@/workspace-tabs/terminal-open-location";
 
 const WORKSPACE_KEY = "server-1:workspace-1";
 const OPEN_DESTINATION = { kind: "open" } as const;
@@ -102,5 +109,64 @@ describe("resolveImplicitTerminalPlacement", () => {
     expect(
       useWorkspaceLayoutStore.getState().bottomPaneIdByWorkspace[WORKSPACE_KEY],
     ).toBeUndefined();
+  });
+});
+
+describe("placeTerminalTabInPane", () => {
+  beforeEach(() => {
+    useWorkspaceLayoutStore.setState({
+      layoutByWorkspace: {},
+      explorerSidebarPaneIdByWorkspace: {},
+      sidePaneIdByWorkspace: {},
+      bottomPaneIdByWorkspace: {},
+      splitSizesByWorkspace: {},
+    });
+  });
+
+  it("swaps a reconcile-created terminal tab into the dock and restores the main placeholder", () => {
+    const store = useWorkspaceLayoutStore.getState();
+    // The reconcile effect opened the terminal in the focused main pane first.
+    store.openTab({
+      workspaceKey: WORKSPACE_KEY,
+      target: { kind: "terminal", terminalId: "t1" },
+      intent: "new",
+    });
+    const dockPaneId = store.ensureBottomPane(WORKSPACE_KEY)!;
+
+    placeTerminalTabInPane({
+      workspaceKey: WORKSPACE_KEY,
+      placement: { mode: "prefer", paneId: dockPaneId },
+      terminalId: "t1",
+    });
+
+    const layout = useWorkspaceLayoutStore.getState().layoutByWorkspace[WORKSPACE_KEY];
+    const dockAfter = findPaneById(layout.root, dockPaneId)!;
+    const tabsById = new Map(collectAllTabs(layout.root).map((tab) => [tab.tabId, tab.target]));
+    expect(dockAfter.tabIds.map((tabId) => tabsById.get(tabId))).toEqual([
+      { kind: "terminal", terminalId: "t1" },
+    ]);
+    expect(layout.focusedPaneId).toBe(dockPaneId);
+
+    const mainPane = findPaneById(layout.root, "main")!;
+    expect(mainPane.tabIds.map((tabId) => tabsById.get(tabId))).toEqual([{ kind: "new_tab" }]);
+  });
+
+  it("opens the terminal into the dock placeholder when no stray tab exists", () => {
+    const store = useWorkspaceLayoutStore.getState();
+    const dockPaneId = store.ensureBottomPane(WORKSPACE_KEY)!;
+
+    placeTerminalTabInPane({
+      workspaceKey: WORKSPACE_KEY,
+      placement: { mode: "prefer", paneId: dockPaneId },
+      terminalId: "t1",
+    });
+
+    const layout = useWorkspaceLayoutStore.getState().layoutByWorkspace[WORKSPACE_KEY];
+    const dock = findPaneById(layout.root, dockPaneId)!;
+    const tabsById = new Map(collectAllTabs(layout.root).map((tab) => [tab.tabId, tab.target]));
+    expect(dock.tabIds.map((tabId) => tabsById.get(tabId))).toEqual([
+      { kind: "terminal", terminalId: "t1" },
+    ]);
+    expect(layout.focusedPaneId).toBe(dockPaneId);
   });
 });
