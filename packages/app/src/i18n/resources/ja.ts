@@ -1368,8 +1368,9 @@ export const ja: TranslationResources = {
     },
     fields: {
       project: "プロジェクト",
-      base: "ベース",
+      branch: "ブランチ",
       baseNotApplicable: "該当なし",
+      host: "ホスト",
     },
     titlePlaceholder: "タイトル（任意）",
     errors: {
