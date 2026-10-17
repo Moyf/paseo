@@ -95,6 +95,25 @@ export function planProbeAbsolutePath(
   return plan.relativePath === "." ? plan.root : `${plan.root}/${plan.relativePath}`;
 }
 
+/**
+ * Whether executing the plan hands the path to the system file manager: an absolute path
+ * outside the workspace root, either probed directly or via a lexical directory link that
+ * re-plans against its own parent.
+ */
+export function isExternalInlinePathPlan(
+  plan: InlinePathOpenPlan,
+  workspaceRoot: string,
+): boolean {
+  if (plan.kind === "probe") {
+    return !plan.underWorkspace;
+  }
+  if (plan.kind === "directory") {
+    const rePlanned = planInlinePathOpen({ file: plan.directoryPath, workspaceRoot });
+    return rePlanned.kind === "probe" && !rePlanned.underWorkspace;
+  }
+  return false;
+}
+
 export interface InlinePathOpenActions {
   /** The daemon client used for directory probes; null skips probing and opens a file. */
   client: { listDirectory(root: string, path: string): Promise<unknown> } | null;
