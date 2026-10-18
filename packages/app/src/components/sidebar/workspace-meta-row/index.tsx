@@ -57,8 +57,10 @@ const dangerMapping = (theme: Theme) => ({ color: theme.colors.statusDanger });
  *
  * Labels are the one exception, and a deliberate one. Everything else here reports state, and
  * state has its own colors — a label is a name a person chose, so it carries its own identity
- * color on a tint instead (see `WorkspaceLabelChip`). It sits last so the reported facts are
- * read first, and it stays the same height as the rest of the line.
+ * color on a tint instead (see `WorkspaceLabelChip`). That run lives on its own line beneath
+ * the state line: inline it fought the service name for the same shrinking space and both
+ * truncated, where stacked each gets the row's full width and the chips wrap among themselves
+ * instead of clipping. It still reads last — the reported facts first, the names under them.
  */
 export function WorkspaceMetaRow({
   currentBranch,
@@ -89,14 +91,24 @@ export function WorkspaceMetaRow({
 
   if (items.length === 0) return null;
 
+  const labelRun = items.find((item) => item.kind === "labels");
+  const stateItems = items.filter(
+    (item): item is Exclude<MetaRowItem, { kind: "labels" }> => item.kind !== "labels",
+  );
+
   return (
-    <View style={styles.row}>
-      {items.map((item, index) => (
-        <Fragment key={item.kind}>
-          {index > 0 ? <Text style={styles.separator}>·</Text> : null}
-          <MetaItemNode item={item} hostBadge={hostBadge} leading={index === 0} />
-        </Fragment>
-      ))}
+    <View style={styles.stack}>
+      {stateItems.length > 0 ? (
+        <View style={styles.row}>
+          {stateItems.map((item, index) => (
+            <Fragment key={item.kind}>
+              {index > 0 ? <Text style={styles.separator}>·</Text> : null}
+              <MetaItemNode item={item} hostBadge={hostBadge} />
+            </Fragment>
+          ))}
+        </View>
+      ) : null}
+      {labelRun?.kind === "labels" ? <LabelsItem labels={labelRun.labels} /> : null}
     </View>
   );
 }
@@ -104,12 +116,9 @@ export function WorkspaceMetaRow({
 function MetaItemNode({
   item,
   hostBadge,
-  leading,
 }: {
-  item: MetaRowItem;
+  item: Exclude<MetaRowItem, { kind: "labels" }>;
   hostBadge: HostBadgeModel | null;
-  /** First on the line, so this item's ink sets the rail the title above it already uses. */
-  leading: boolean;
 }): ReactNode {
   if (item.kind === "branch") {
     return <IdentityItem kind="branch" name={item.name} />;
@@ -125,9 +134,6 @@ function MetaItemNode({
   }
   if (item.kind === "checks") {
     return <ChecksItem summary={item.summary} label={item.label} />;
-  }
-  if (item.kind === "labels") {
-    return <LabelsItem labels={item.labels} leading={leading} />;
   }
   return <ServiceItem summary={item.summary} />;
 }
@@ -147,27 +153,20 @@ function IdentityItem({ kind, name }: { kind: "branch" | "project"; name: string
 }
 
 /**
- * Every label on the workspace, in one run. The chips sit closer to each other than the line's
- * items do to each other, so several labels still read as one item rather than as new peers,
- * and they take no separator between them — each chip's ground already ends it.
+ * Every label on the workspace, in one run on its own line. The chips sit closer to each other
+ * than the state line's items do to each other, so several labels still read as one item —
+ * and since each chip's ground already ends it, the run takes no separators and can wrap
+ * without stranding any: a second row of chips is just more of the same run.
  *
- * The run shrinks and clips, the way the host badge does. A `+N` counter would be a second
- * thing to read on a line that exists to be skimmed.
+ * A `+N` counter would be a second thing to read on a line that exists to be skimmed, and
+ * wrapping removes the last reason for one — the run no longer shrinks and clips, it spills.
  *
- * A workspace whose only meta item is its labels puts a chip where every other row puts a glyph,
- * and a chip's ground is chrome — so it hangs left by its own padding and the label's first
- * letter lands on the rail the title above it uses. Mid-line the ground stays in the flow: there
- * is a separator to its left, and pulling the tint up against that dot buys nothing.
+ * The run always leads its own line, and a chip's ground is chrome — so it hangs left by its
+ * own padding and the first label's letter lands on the rail the title above it uses.
  */
-function LabelsItem({
-  labels,
-  leading,
-}: {
-  labels: readonly WorkspaceLabelDefinition[];
-  leading: boolean;
-}) {
+function LabelsItem({ labels }: { labels: readonly WorkspaceLabelDefinition[] }) {
   return (
-    <View style={[styles.labels, leading && styles.labelsLeading]}>
+    <View style={[styles.labels, styles.labelsLeading]}>
       {labels.map((label) => (
         <WorkspaceLabelChip key={workspaceLabelKey(label.name)} label={label} />
       ))}
@@ -310,6 +309,11 @@ function pressableItemStyle({ pressed }: { pressed: boolean }) {
 }
 
 const styles = StyleSheet.create((theme) => ({
+  // The state line and the labels line under it. The gap only shows when both render — a
+  // labels-free row is one child, and a labels-only row starts the block.
+  stack: {
+    gap: theme.spacing[0.5],
+  },
   row: {
     flexDirection: "row",
     alignItems: "center",
@@ -348,16 +352,15 @@ const styles = StyleSheet.create((theme) => ({
     lineHeight: 16,
     flexShrink: 0,
   },
-  // Tighter than the line's own gap so a run of chips reads as one item — see `LabelsItem`.
-  // Shrinks at the same weight as the service name: both are arbitrary text somebody chose, so
-  // a crowded line takes from the two of them in proportion rather than emptying one of them.
-  // The host badge still gives up its space before either — see `flexShrink` in host-badge.tsx.
+  // Tighter than the state line's own gap so a run of chips reads as one item — see
+  // `LabelsItem`. The one gap serves both axes, so a wrapped second row of chips sits as far
+  // from the first as chips sit from each other. Chips wrap by their full width before any of
+  // them shrinks; only a lone chip wider than the row truncates.
   labels: {
     flexDirection: "row",
+    flexWrap: "wrap",
     alignItems: "center",
     gap: theme.spacing[1],
-    minWidth: 0,
-    flexShrink: 1,
   },
   labelsLeading: {
     marginLeft: -WORKSPACE_LABEL_CHIP_INSET,

@@ -78,7 +78,7 @@ describe("selectMetaRowItems", () => {
     ]);
   });
 
-  it("carries every label as one item, so the line keeps one separator however many there are", () => {
+  it("carries every label as one item, however many there are", () => {
     const labels: WorkspaceLabelDefinition[] = [
       { name: "Urgent", color: "red" },
       { name: "Backend", color: "sky" },
