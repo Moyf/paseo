@@ -3,6 +3,7 @@ import {
   forwardRef,
   useCallback,
   useMemo,
+  useState,
   type ComponentProps,
   type MouseEvent,
   type ReactElement,
@@ -42,16 +43,31 @@ function WebCodeBlock({ code, language }: CodeBlockRendererProps) {
   return <ThemedCodeBlock code={code} language={language} uniProps={codeStyle} />;
 }
 
+// The library styles links inline, so a stylesheet :hover rule cannot underline them.
+const LINK_HOVER_STYLE = { textDecoration: "underline" } as const;
+
 function WebLink({ link, anchorProps, children }: LinkRendererProps) {
   const source = markdownLinkSource(link.url, link.sourceType);
   const { target, tooltipPath, onHoverIn, open } = useFileLink(source);
   const environment = useAssistantFileLinkEnvironment();
+  const [hovered, setHovered] = useState(false);
+  const handleMouseEnter = useCallback(() => setHovered(true), []);
+  const handleMouseLeave = useCallback(() => setHovered(false), []);
   const anchorStyle = useMemo(
-    () => ({ ...anchorProps.style, overflowWrap: "anywhere" as const }),
-    [anchorProps.style],
+    () => ({
+      ...anchorProps.style,
+      overflowWrap: "anywhere" as const,
+      ...(hovered ? LINK_HOVER_STYLE : null),
+    }),
+    [anchorProps.style, hovered],
   );
   const anchor = (
-    <a {...anchorProps} style={anchorStyle}>
+    <a
+      {...anchorProps}
+      style={anchorStyle}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+    >
       {children}
     </a>
   );
@@ -158,7 +174,10 @@ function WebLinkContextMenuBody({
 // TooltipTrigger also supplies native Pressable handlers; forward only DOM events.
 // A View renders a div, which is invalid inside the library's prose paragraphs.
 const InlineLinkTrigger = forwardRef<HTMLSpanElement, ComponentProps<"span">>(
-  function InlineLinkTrigger({ children, onMouseEnter, onMouseLeave, onFocus, onBlur, onContextMenu }, ref) {
+  function InlineLinkTrigger(
+    { children, onMouseEnter, onMouseLeave, onFocus, onBlur, onContextMenu },
+    ref,
+  ) {
     return (
       <span
         ref={ref}

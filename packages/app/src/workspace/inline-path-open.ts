@@ -100,10 +100,7 @@ export function planProbeAbsolutePath(
  * outside the workspace root, either probed directly or via a lexical directory link that
  * re-plans against its own parent.
  */
-export function isExternalInlinePathPlan(
-  plan: InlinePathOpenPlan,
-  workspaceRoot: string,
-): boolean {
+export function isExternalInlinePathPlan(plan: InlinePathOpenPlan, workspaceRoot: string): boolean {
   if (plan.kind === "probe") {
     return !plan.underWorkspace;
   }

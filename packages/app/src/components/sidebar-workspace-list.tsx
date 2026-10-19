@@ -53,7 +53,11 @@ import { NestableScrollContainer } from "react-native-draggable-flatlist";
 import type { ScrollView as GestureHandlerScrollView } from "react-native-gesture-handler";
 import { DraggableList, type DraggableRenderItemInfo } from "./draggable-list";
 import type { DraggableListDragHandleProps } from "./draggable-list.types";
-import { getHostRuntimeStore, useHosts } from "@/runtime/host-runtime";
+import {
+  getHostRuntimeStore,
+  useHosts,
+  useHostRuntimeConnectionStatus,
+} from "@/runtime/host-runtime";
 import type { PinnedSidebarGroups } from "@/hooks/use-sidebar-pins";
 import {
   useSidebarWorkspacePinController,
@@ -1688,6 +1692,9 @@ function ProjectBlock({
     canToggle: canToggleWorkspaces,
     toggleExpanded: toggleWorkspacesExpanded,
   } = useLimitedSidebarGroup(project.workspaces);
+  const activeServerId = activeWorkspaceSelection?.serverId ?? null;
+  const activeHostStatus = useHostRuntimeConnectionStatus(activeServerId ?? "");
+  const preferredServerId = activeHostStatus === "online" ? activeServerId : null;
   // Each section registers only the rows it actually renders, so a Shift range can never reach
   // past a "show more" boundary or into a collapsed project.
   const selectionTargets = useMemo(
@@ -1707,8 +1714,9 @@ function ProjectBlock({
         project,
         collapsed,
         supportsMultiplicityByServerId,
+        preferredServerId,
       }),
-    [collapsed, project, supportsMultiplicityByServerId],
+    [collapsed, preferredServerId, project, supportsMultiplicityByServerId],
   );
 
   // Collapsed rows hide their workspace rows, so the project row carries the most urgent
@@ -1954,6 +1962,7 @@ function areProjectBlockPropsEqual(previous: ProjectBlockProps, next: ProjectBlo
     previous.useNestable === next.useNestable &&
     previous.dragGestureHostActive === next.dragGestureHostActive &&
     previous.creatingWorkspaceIds === next.creatingWorkspaceIds &&
+    previous.activeWorkspaceSelection?.serverId === next.activeWorkspaceSelection?.serverId &&
     areProjectBlockSelectionsEqual(previous, next)
   );
 }
