@@ -50,6 +50,7 @@ import { WorkspaceRenameModal } from "@/components/workspace-rename-modal";
 import { useWorkspaceClipboardActions } from "@/hooks/use-workspace-clipboard-actions";
 import { ExternalLink, Settings, MoreVertical, Plus, Trash2 } from "lucide-react-native";
 import { NestableScrollContainer } from "react-native-draggable-flatlist";
+import type { ScrollView as GestureHandlerScrollView } from "react-native-gesture-handler";
 import { DraggableList, type DraggableRenderItemInfo } from "./draggable-list";
 import type { DraggableListDragHandleProps } from "./draggable-list.types";
 import { getHostRuntimeStore, useHosts } from "@/runtime/host-runtime";
@@ -161,6 +162,12 @@ import type { HostBadgeModel } from "@/hosts/appearance";
 import { useHostBadges } from "@/hosts/use-host-badges";
 import { useSidebarRowItems } from "@/components/sidebar/display-preferences/model";
 import { PullRequestStateIcon } from "@/git/pull-request-state-icon";
+import {
+  SidebarRevealContentAnchor,
+  SidebarRevealFlashOverlay,
+  useSidebarRevealScroller,
+} from "@/components/sidebar/sidebar-reveal";
+import { useRevealRowRef } from "@/components/sidebar/sidebar-reveal-store";
 
 const workspaceKeyExtractor = (workspace: SidebarWorkspacePlacement) => workspace.workspaceKey;
 
@@ -1112,6 +1119,14 @@ export function WorkspaceRowInner({
     drag,
     menuController,
   });
+  const revealRef = useRevealRowRef(workspace.workspaceKey);
+  const setRowContainerRef = useCallback(
+    (node: View | null) => {
+      revealRef.current = node;
+      dragHandleProps?.setActivatorNodeRef?.(node);
+    },
+    [dragHandleProps, revealRef],
+  );
   const {
     role: _dragRole,
     tabIndex: _dragTabIndex,
@@ -1186,7 +1201,7 @@ export function WorkspaceRowInner({
           <View
             {...dragAttributes}
             {...dragHandleProps?.listeners}
-            ref={dragHandleProps?.setActivatorNodeRef as unknown as Ref<View>}
+            ref={setRowContainerRef}
             style={styles.workspaceRowContainer}
             onPointerDown={captureWorkspaceRowPointerModifiers}
             onPointerUp={handleRowPointerUp}
@@ -1261,6 +1276,7 @@ export function WorkspaceRowInner({
                 />
               </SidebarWorkspaceRowContent>
             </SidebarWorkspaceContextMenu>
+            <SidebarRevealFlashOverlay workspaceKey={workspace.workspaceKey} />
           </View>
         );
       }}
@@ -2229,6 +2245,9 @@ function ProjectModeList({
   const togglePinnedCollapsed = useSidebarCollapsedSectionsStore(
     (state) => state.togglePinnedCollapsed,
   );
+  const scrollRef = useRef<GestureHandlerScrollView | null>(null);
+  const contentRef = useRef<View | null>(null);
+  useSidebarRevealScroller({ scrollRef, contentRef });
 
   const getProjectOrder = useSidebarOrderStore((state) => state.getProjectOrder);
   const setProjectOrder = useSidebarOrderStore((state) => state.setProjectOrder);
@@ -2596,22 +2615,24 @@ function ProjectModeList({
     <View style={styles.container}>
       {platformIsNative ? (
         <NestableScrollContainer
+          ref={scrollRef}
           {...nativeScrollGestureProps}
           style={styles.list}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
           testID="sidebar-project-workspace-list-scroll"
         >
-          {content}
+          <SidebarRevealContentAnchor contentRef={contentRef}>{content}</SidebarRevealContentAnchor>
         </NestableScrollContainer>
       ) : (
         <ScrollView
+          ref={scrollRef}
           style={styles.list}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
           testID="sidebar-project-workspace-list-scroll"
         >
-          {content}
+          <SidebarRevealContentAnchor contentRef={contentRef}>{content}</SidebarRevealContentAnchor>
         </ScrollView>
       )}
     </View>
