@@ -28,8 +28,11 @@ export const WORKSPACE_LABEL_CHIP_INSET = SPACING[1.5];
  * next to it. The color comes from the identity table, held to the same contrast band as the
  * host badge beside it, so a chip identifies without shouting.
  *
- * The chip is exactly as tall as the line it sits on: text at the row's `lineHeight`, no vertical
- * padding. A ground that grew the line would push every other row in the sidebar down for it.
+ * The ground extends `CHIP_GROUND_ROOM` past the ink above and below. The name sits in the
+ * row's 16px line box, and under CJK-fallback font metrics the ink reaches the box's bottom
+ * edge — flush against a ground that ends there it reads as cut off. The room costs nothing:
+ * the chips run owns its whole line in the meta row (see `LabelsItem`), so a taller ground
+ * pushes no other item around.
  */
 export function WorkspaceLabelChip({ label }: { label: WorkspaceLabelDefinition }): ReactElement {
   return (
@@ -51,6 +54,9 @@ const CHIP_GROUNDS: Record<WorkspaceLabelColor, ViewStyle> = Object.fromEntries(
   WORKSPACE_LABEL_COLORS.map((color) => [color, { backgroundColor: identityTint(color) }]),
 ) as Record<WorkspaceLabelColor, ViewStyle>;
 
+/** How far the ground extends past the ink above and below — see the component's doc. */
+const CHIP_GROUND_ROOM = SPACING[0.5];
+
 const styles = StyleSheet.create((theme) => ({
   chip: {
     // Yields space the way the host badge does, so a long label truncates instead of pushing
@@ -58,6 +64,7 @@ const styles = StyleSheet.create((theme) => ({
     flexShrink: 1,
     minWidth: 0,
     paddingHorizontal: WORKSPACE_LABEL_CHIP_INSET,
+    paddingVertical: CHIP_GROUND_ROOM,
     borderRadius: theme.borderRadius.full,
   },
   // No optical nudge: the ground is the text's own line box, so the chip's ink sits on the same
