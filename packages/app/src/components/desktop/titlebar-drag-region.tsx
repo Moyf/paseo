@@ -32,6 +32,15 @@ export const TITLEBAR_DRAG_OVERLAY_ATTRIBUTE = "data-paseo-drag-overlay";
 /** Marks floating layers (portals, window controls) that can overlap a drag overlay. */
 export const NO_DRAG_SCOPE_ATTRIBUTE = "data-paseo-no-drag-scope";
 
+/**
+ * RNW-safe form of {@link NO_DRAG_SCOPE_ATTRIBUTE} for react-native `View`/`Pressable`
+ * hosts. RNW drops unknown props through its forwarded-prop whitelist, so spreading a
+ * `data-*` attribute onto them never reaches the DOM; `dataSet` keys are hyphenated
+ * into real attributes by createDOMProps. Plain-DOM hosts can use the attribute name
+ * directly.
+ */
+export const NO_DRAG_SCOPE_DATA_SET = { paseoNoDragScope: "true" } as const;
+
 export const titlebarDragSurfaceStyle: React.CSSProperties = {
   cursor: "default",
   // @ts-expect-error — WebkitAppRegion is not in CSSProperties

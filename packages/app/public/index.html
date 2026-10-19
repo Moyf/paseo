@@ -76,6 +76,10 @@
       :has(> [data-paseo-drag-overlay]) [role="menuitem"],
       :has(> [data-paseo-drag-overlay]) [tabindex],
       :has(> [data-paseo-drag-overlay]) [contenteditable="true"],
+      /* Scope carriers that are themselves interactive also carve themselves
+         out (e.g. the sidebar resize handles carry the attribute directly). */
+      [data-paseo-no-drag-scope][role="button"],
+      [data-paseo-no-drag-scope][role="separator"],
       [data-paseo-no-drag-scope] button,
       [data-paseo-no-drag-scope] a,
       [data-paseo-no-drag-scope] input,
@@ -90,6 +94,7 @@
       [data-paseo-no-drag-scope] [role="checkbox"],
       [data-paseo-no-drag-scope] [role="slider"],
       [data-paseo-no-drag-scope] [role="menuitem"],
+      [data-paseo-no-drag-scope] [role="separator"],
       [data-paseo-no-drag-scope] [tabindex],
       [data-paseo-no-drag-scope] [contenteditable="true"] {
         -webkit-app-region: no-drag !important;
