@@ -111,6 +111,8 @@ export interface AppSettings {
   pullRequestOpenLocation: PullRequestOpenLocation;
   /** Desktop-only destination for implicitly opened terminals. */
   terminalOpenLocation: TerminalOpenLocation;
+  /** Whether the History screen leaves archived sessions out of the list. */
+  hideArchivedSessions: boolean;
 }
 
 export type AppSettingsUpdate =
@@ -168,6 +170,7 @@ export const DEFAULT_CLIENT_SETTINGS: AppSettings = {
   openInSidePane: DEFAULT_OPEN_IN_SIDE_PANE_PREFERENCES,
   pullRequestOpenLocation: "explorer",
   terminalOpenLocation: "main",
+  hideArchivedSessions: true,
 };
 
 export const DEFAULT_APP_SETTINGS: Settings = {
@@ -292,6 +295,7 @@ const StoredAppSettingsSchema = z
       }),
     pullRequestOpenLocation: z.enum(["main", "side", "explorer"]).optional(),
     terminalOpenLocation: z.enum(["main", "side", "bottom"]).catch("main"),
+    hideArchivedSessions: z.boolean().catch(true),
     // COMPAT(explorerSidebarRouting): replaced by source-specific side-pane preferences in v0.6.
     openSupportingTabsInSidePanel: z.boolean().optional().catch(undefined),
     // COMPAT(rendererDesktopSettings): these fields used to share this renderer-owned key.
