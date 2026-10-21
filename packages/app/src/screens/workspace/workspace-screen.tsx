@@ -212,6 +212,7 @@ import type { TerminalProfile } from "@getpaseo/protocol/messages";
 import {
   WorkspaceHeaderMenuDesktop,
   WorkspaceHeaderMenuMobile,
+  WorkspaceHeaderRevealButton,
 } from "@/screens/workspace/workspace-header-menu";
 import { PluginHeaderButtons } from "@/plugins";
 import {
@@ -545,6 +546,10 @@ function WorkspaceHeaderTitleBar({
           onCopyWorkspacePath={onCopyWorkspacePath}
           onCopyBranchName={onCopyBranchName}
           onOpenSetupTab={onOpenSetupTab}
+        />
+        <WorkspaceHeaderRevealButton
+          onPress={onRevealInSidebar}
+          label={t("sidebar.workspace.actions.revealInSidebar")}
         />
       </View>
     </View>
