@@ -280,6 +280,7 @@ export const en = {
     tooManyMatches: "Too many matches — narrow your search",
     hostLoadFailed: "{{host}}: Could not load history",
     searchPlaceholder: "Search history",
+    hideArchived: "Hide archived",
     actions: {
       loadMore: "Load more",
       clearSearch: "Clear search",

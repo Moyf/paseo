@@ -284,6 +284,7 @@ export const ko: TranslationResources = {
     tooManyMatches: "일치 항목이 너무 많습니다 — 검색 범위를 좁히세요",
     hostLoadFailed: "{{host}}: 기록을 불러오지 못했습니다",
     searchPlaceholder: "기록 검색",
+    hideArchived: "보관됨 숨기기",
     actions: {
       loadMore: "더 불러오기",
       clearSearch: "검색 지우기",
