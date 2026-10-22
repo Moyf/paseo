@@ -50,7 +50,7 @@ import {
   splitWorkspaceRootRightInLayout,
   splitWorkspaceRootBottomInLayout,
   splitPaneInLayout,
-  BOTTOM_DOCK_MAX_HEIGHT_PX,
+  BOTTOM_DOCK_DEFAULT_HEIGHT_PX,
   clampChildFractionInSizes,
   stripEphemeralTabsFromLayout,
   type SplitGroup,
@@ -73,7 +73,7 @@ import { panelTargetSupportsHostForWorkspaceKey } from "@/plugins/workspace-pane
 
 export {
   AMBIENT_PLACEMENT,
-  BOTTOM_DOCK_MAX_HEIGHT_PX,
+  BOTTOM_DOCK_DEFAULT_HEIGHT_PX,
   canDismissPaneInLayout,
   clampChildFractionInSizes,
   collectAllPanes,
