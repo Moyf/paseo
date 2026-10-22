@@ -28,5 +28,19 @@
     "typecheck": {
       "command": "npm run typecheck"
     }
+  },
+  "metadataGeneration": {
+    "title": {
+      "instructions": "用简体中文写一个 4-14 字的名词短语标题，概括任务主题，不要照抄用户原句。技术名词、模块名和专有名词保留英文原文（如 RPC、daemon、worktree、Explorer、sidebar、Expo）。如果用户消息中带有 issue 或 PR 编号，用 #编号 开头（如「#181 RPC 重构」）；否则按任务性质选一个 emoji 前缀：新功能用 ✨，修复用 🔧，重构用 🏗️，调研分析用 🧐，清单核对用 📜，样式调整用 🎨，其余不加前缀。标题末尾不加任何标点或引号。"
+    },
+    "branchName": {
+      "instructions": "分支以 feat/、doc/ 或 fix/ 开头；分支名称用语义的内容，而不是直接随机生成。只用小写字母、数字、连字符和斜杠，单词之间用连字符分隔，不要空格、大写或下划线。"
+    },
+    "commitMessage": {
+      "instructions": "使用带 scope 的 Conventional Commits，整条消息用英文，格式 type(scope): description。scope 用受影响的包或模块，常见为 app、server、cli、desktop、website、protocol、relay、docs；纯组件级改动可用组件名（如 sidebar、explorer）。type 按性质选 feat/fix/docs/refactor/perf/test/chore。描述用祈使语气，写清具体修改内容但别啰嗦，结尾不加句号，整条不超过 72 字符。"
+    },
+    "pullRequest": {
+      "instructions": "标题用英文祈使语气，结尾不加句号。正文说明改了什么、为什么改，有用户可见变化时列出要点。在提交 PR 之前检查仓库根目录的 CHANGELOG.md 是否含有本次的主要更新内容。"
+    }
   }
 }
