@@ -88,6 +88,6 @@ export function FloatingPanelPortalHost({
 
 const styles = StyleSheet.create({
   host: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
   },
 });

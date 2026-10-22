@@ -128,6 +128,10 @@ export interface SheetTab {
   parentTabId: string | null;
 }
 
+export type WorkspaceTabDestination =
+  | { kind: "pane"; paneId: string; host: "main" | "explorer"; tabId: string }
+  | { kind: "sheet"; tabId: string };
+
 interface WorkspaceLayoutStore {
   /** Published once by the app shell; callers never pass a form factor to open a tab. */
   layoutMode: WorkspaceLayoutMode;
@@ -167,6 +171,7 @@ interface WorkspaceLayoutStore {
     resolvePlacement: () => Pick<OpenWorkspaceTabInput, "placement" | "insertionPosition">,
   ) => string | null;
   /** Reveals the Explorer sidebar without selecting a view. Returns its pane id. */
+  ensureExplorerSidebar: (workspaceKey: string) => string | null;
   showExplorerSidebar: (workspaceKey: string) => string | null;
   hideExplorerSidebar: (workspaceKey: string) => void;
   /** Returns the ordinary right-side workspace pane, creating it when absent. */
@@ -174,6 +179,7 @@ interface WorkspaceLayoutStore {
   /** Returns the ordinary bottom workspace pane, creating it when absent. */
   ensureBottomPane: (workspaceKey: string) => string | null;
   closeTab: (workspaceKey: string, tabId: string) => void;
+  getTabDestination: (workspaceKey: string, tabId: string) => WorkspaceTabDestination | null;
   focusTab: (workspaceKey: string, tabId: string) => void;
   selectTabInPane: (workspaceKey: string, paneId: string, tabId: string) => void;
   replaceTab: (
@@ -1061,12 +1067,15 @@ export function createWorkspaceLayoutStore(
             normalizedWorkspaceKey,
             input.parentTabId,
           );
-          const sheetPlacement = resolveSheetPlacement(
-            get(),
-            normalizedWorkspaceKey,
-            normalizedTarget,
-            input.intent,
-          );
+          const sheetPlacement =
+            input.placement?.mode === "pane"
+              ? null
+              : resolveSheetPlacement(
+                  get(),
+                  normalizedWorkspaceKey,
+                  normalizedTarget,
+                  input.intent,
+                );
           if (sheetPlacement) {
             const sheets = getSheets(get(), normalizedWorkspaceKey);
             const { keptIndex } = sheetPlacement;
@@ -1126,8 +1135,18 @@ export function createWorkspaceLayoutStore(
           if (!result) {
             return null;
           }
+          const openedLayout =
+            get().layoutMode === "compact" && placement.explorerSidebarPaneId
+              ? (setPaneHiddenInLayout({
+                  layout: result.layout,
+                  paneId: placement.explorerSidebarPaneId,
+                  hidden:
+                    findPaneById(placement.layout.root, placement.explorerSidebarPaneId)?.hidden ===
+                    true,
+                }) ?? result.layout)
+              : result.layout;
           const nextLayout = keepWorkspaceFocusOutOfExplorerSidebar(
-            result.layout,
+            openedLayout,
             placement.explorerSidebarPaneId,
             placement.layout.focusedPaneId,
           );
@@ -1200,7 +1219,7 @@ export function createWorkspaceLayoutStore(
           set(promoted.patch);
           return promoted.tabId;
         },
-        showExplorerSidebar: (workspaceKey) => {
+        ensureExplorerSidebar: (workspaceKey) => {
           const normalizedWorkspaceKey = trimNonEmpty(workspaceKey);
           if (!normalizedWorkspaceKey) {
             return null;
@@ -1221,14 +1240,11 @@ export function createWorkspaceLayoutStore(
               state.layoutByWorkspace,
               normalizedWorkspaceKey,
             );
-            const revealedLayout =
-              setPaneHiddenInLayout({ layout: currentLayout, paneId, hidden: false }) ??
-              currentLayout;
             return {
               layoutByWorkspace: {
                 ...state.layoutByWorkspace,
                 [normalizedWorkspaceKey]: keepWorkspaceFocusOutOfExplorerSidebar(
-                  revealedLayout,
+                  currentLayout,
                   paneId,
                   currentLayout.focusedPaneId,
                 ),
@@ -1238,6 +1254,18 @@ export function createWorkspaceLayoutStore(
                 [normalizedWorkspaceKey]: paneId,
               },
             };
+          });
+          return paneId;
+        },
+        showExplorerSidebar: (workspaceKey) => {
+          const paneId = get().ensureExplorerSidebar(workspaceKey);
+          if (!paneId || get().layoutMode === "compact") return paneId;
+          set((state) => {
+            const layout = state.layoutByWorkspace[workspaceKey];
+            const next = setPaneHiddenInLayout({ layout, paneId, hidden: false });
+            return next
+              ? { layoutByWorkspace: { ...state.layoutByWorkspace, [workspaceKey]: next } }
+              : state;
           });
           return paneId;
         },
@@ -1434,6 +1462,26 @@ export function createWorkspaceLayoutStore(
             };
           });
         },
+        getTabDestination: (workspaceKey, tabId) => {
+          const state = get();
+          if (state.sheetsByWorkspace[workspaceKey]?.some((sheet) => sheet.tab.tabId === tabId)) {
+            return { kind: "sheet", tabId };
+          }
+          const layout = state.layoutByWorkspace[workspaceKey];
+          if (!layout) return null;
+          const pane = findPaneContainingTab(layout.root, tabId);
+          if (!pane) return null;
+          const explorerId = resolveExplorerSidebarPaneId(
+            layout,
+            state.explorerSidebarPaneIdByWorkspace[workspaceKey],
+          );
+          return {
+            kind: "pane",
+            paneId: pane.id,
+            host: pane.id === explorerId ? "explorer" : "main",
+            tabId,
+          };
+        },
         focusTab: (workspaceKey, tabId) => {
           const normalizedWorkspaceKey = trimNonEmpty(workspaceKey);
           const normalizedTabId = trimNonEmpty(tabId);
@@ -1454,7 +1502,7 @@ export function createWorkspaceLayoutStore(
                 setPaneHiddenInLayout({
                   layout,
                   paneId: explorerSidebarPaneId,
-                  hidden: false,
+                  hidden: state.layoutMode === "compact" ? tabPane.hidden === true : false,
                 }) ?? layout;
               nextLayout =
                 selectTabInPaneInLayout({

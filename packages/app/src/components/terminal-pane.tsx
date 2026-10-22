@@ -71,7 +71,6 @@ import {
 import { useIsCompactFormFactor } from "@/constants/layout";
 import { isNative } from "@/constants/platform";
 import { useFileExplorerActions } from "@/hooks/use-file-explorer-actions";
-import { useWorkspaceFields } from "@/stores/session-store-hooks";
 import { openDesktopTarget, useFileManagerOpenTarget } from "@/workspace/desktop-open-targets";
 import { openInlinePathPlan, planInlinePathOpen } from "@/workspace/inline-path-open";
 import { openExplorerSidebarView } from "@/workspace-tabs/explorer-sidebar";
@@ -249,11 +248,6 @@ export function TerminalPane({
   const isAppActivelyVisible = useAppActivelyVisible();
   const { theme } = useUnistyles();
   const { settings } = useAppSettings();
-  const isGitCheckout = useWorkspaceFields(
-    serverId,
-    workspaceId,
-    (workspace) => workspace.projectKind === "git",
-  );
   const { requestDirectoryListing } = useFileExplorerActions({
     serverId,
     workspaceId,
@@ -977,7 +971,6 @@ export function TerminalPane({
             serverId,
             workspaceId: workspaceId ?? "",
           }),
-          checkout: { serverId, cwd, isGit: isGitCheckout ?? true },
           view: "files",
         });
       };
@@ -1015,7 +1008,6 @@ export function TerminalPane({
       client,
       cwd,
       fileManagerTarget,
-      isGitCheckout,
       isMobile,
       onOpenWorkspaceFile,
       requestDirectoryListing,
@@ -1252,7 +1244,7 @@ const styles = StyleSheet.create((theme) => ({
     minHeight: 0,
   },
   attachOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "rgba(0, 0, 0, 0.16)",
