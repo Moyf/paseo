@@ -168,6 +168,10 @@ and a column of icons there is decoration competing with the values you actually
 - Separators use `borderAccent`, the same colour the surface outlines itself with. `border` sits
   between `surface1` and `surface2`, which put it within a hair of the hover fill and made
   separators disappear against a hovered row.
+- **A popover clamps itself to the window and scrolls.** `scrollable` defaults to true: the
+  surface's height is capped at the display area and rows scroll inside it. A list longer than
+  the window used to be clipped by the window edge with no way to reach the rest. The sheet
+  ignores the prop — `BottomSheetScrollView` always scrolls.
 
 ## When a decision earns a submenu
 

@@ -7,10 +7,11 @@ import {
   type ReactNode,
 } from "react";
 import { useTranslation } from "react-i18next";
-import { View, type PressableStateCallbackType } from "react-native";
+import { Text, View, type PressableStateCallbackType } from "react-native";
 import { StyleSheet, withUnistyles } from "react-native-unistyles";
 import {
   Captions,
+  Check,
   Circle,
   CircleCheck,
   CircleDashed,
@@ -44,6 +45,7 @@ import { useProjectIcons } from "@/projects/icons";
 import { resolveSidebarProjectIconTargets } from "@/utils/sidebar-project-row-model";
 import { projectIconPlaceholderLabelFromDisplayName } from "@/utils/project-display-name";
 import type { SidebarProjectEntry } from "@/hooks/use-sidebar-workspaces-list";
+import { shouldShowSidebarHostLabels } from "@/hooks/use-sidebar-workspaces-list";
 import type { Theme } from "@/styles/theme";
 import {
   hasActiveSidebarLabelFilter,
@@ -65,6 +67,8 @@ const ThemedSettings2 = withUnistyles(Settings2);
 /** CI's mark: the subject of the checks row, and the shape the icon-only option leaves behind. */
 const ThemedCircleCheck = withUnistyles(CircleCheck);
 const ThemedCircle = withUnistyles(Circle);
+/** The filter check a trailing host label has to carry itself — see `ProjectFilterItem`. */
+const ThemedCheck = withUnistyles(Check);
 
 /** Fits the item's 16pt leading slot with a hair of room, matching the trailing check. */
 const OPTION_ICON_SIZE = 14;
@@ -256,6 +260,7 @@ export function SidebarDisplayPreferencesMenu(): ReactElement {
             projects={allProjects}
             resolvedProjectFilters={resolvedProjectFilters}
             preferences={preferences}
+            hosts={hosts}
           />
         ),
       });
@@ -614,6 +619,11 @@ function ChecksSubTrigger(): ReactElement {
  * A workspace belongs to exactly one project, so this is a plain allowlist — the same shape as the
  * host page, and deliberately not the label page's tri-state.
  *
+ * While the list spans more than one host, each row names its host at the trailing edge — same
+ * rule as the sidebar's own host labels (`shouldShowSidebarHostLabels`), and the same answer to
+ * two identically named projects that did not merge. A merged project spanning several hosts
+ * reads every host, "mac-mini / studio", so one row still says the whole truth.
+ *
  * Selection reads `resolvedProjectFilters`, not the stored list. A stored key whose project is not
  * currently visible filters nothing, so showing it as checked here would contradict the sidebar.
  */
@@ -621,15 +631,25 @@ function ProjectFilterPage({
   projects,
   resolvedProjectFilters,
   preferences,
+  hosts,
 }: {
   projects: readonly SidebarProjectEntry[];
   resolvedProjectFilters: readonly string[];
   preferences: Preferences;
+  hosts: ReturnType<typeof useHosts>;
 }): ReactElement {
   const { t } = useTranslation();
   const iconTargets = useMemo(() => resolveSidebarProjectIconTargets(projects), [projects]);
   // Shares TanStack's cache with the sidebar's own call, so this subscribes rather than refetches.
   const iconByProjectViewKey = useProjectIcons({ projects: iconTargets });
+  const showHostLabels = useMemo(() => shouldShowSidebarHostLabels(projects), [projects]);
+  const hostLabelByServerId = useMemo(() => {
+    const byServerId = new Map<string, string>();
+    for (const host of hosts) {
+      byServerId.set(host.serverId, host.label?.trim() || host.serverId);
+    }
+    return byServerId;
+  }, [hosts]);
 
   return (
     <>
@@ -641,16 +661,25 @@ function ProjectFilterPage({
       >
         {t("sidebar.display.projectFilter.all")}
       </MenuItem>
-      {projects.map((project) => (
-        <ProjectFilterItem
-          key={project.viewKey}
-          viewKey={project.viewKey}
-          label={project.projectName}
-          iconDataUri={iconByProjectViewKey.get(project.viewKey) ?? null}
-          selected={resolvedProjectFilters.includes(project.viewKey)}
-          onToggle={preferences.toggleProjectFilter}
-        />
-      ))}
+      {projects.map((project) => {
+        const hostLabel = showHostLabels
+          ? project.hosts
+              .map((host) => hostLabelByServerId.get(host.serverId))
+              .filter((label): label is string => Boolean(label))
+              .join(" / ") || null
+          : null;
+        return (
+          <ProjectFilterItem
+            key={project.viewKey}
+            viewKey={project.viewKey}
+            label={project.projectName}
+            iconDataUri={iconByProjectViewKey.get(project.viewKey) ?? null}
+            hostLabel={hostLabel}
+            selected={resolvedProjectFilters.includes(project.viewKey)}
+            onToggle={preferences.toggleProjectFilter}
+          />
+        );
+      })}
     </>
   );
 }
@@ -659,12 +688,15 @@ function ProjectFilterItem({
   viewKey,
   label,
   iconDataUri,
+  hostLabel,
   selected,
   onToggle,
 }: {
   viewKey: string;
   label: string;
   iconDataUri: string | null;
+  /** Host names at the trailing edge, or `null` while the list spans a single host. */
+  hostLabel: string | null;
   selected: boolean;
   onToggle: (viewKey: string) => void;
 }): ReactElement {
@@ -681,11 +713,26 @@ function ProjectFilterItem({
     ),
     [iconDataUri, label, viewKey],
   );
+  // A trailing element replaces `MenuItem`'s own check, so a labelled row carries the check
+  // beside its host name to keep every tick on this page at the same edge.
+  const trailing = useMemo(
+    () =>
+      hostLabel ? (
+        <View style={styles.hostTrailing}>
+          <Text style={styles.hostText} numberOfLines={1}>
+            {hostLabel}
+          </Text>
+          {selected ? <ThemedCheck size={16} uniProps={mutedIconMapping} /> : null}
+        </View>
+      ) : null,
+    [hostLabel, selected],
+  );
 
   return (
     <MenuItem
       selected={selected}
       leading={leading}
+      trailing={trailing}
       closeOnSelect={false}
       onSelect={handleSelect}
       testID={`sidebar-project-filter-${viewKey}`}
@@ -776,5 +823,17 @@ const styles = StyleSheet.create((theme) => ({
   // than reusing the sidebar row's 16pt figure.
   projectIconText: {
     fontSize: 8,
+  },
+  // Same shapes as the submenu row's own trailing value (menu-sub.tsx): muted text that yields
+  // to the label, with the filter check kept at the trailing edge beside it.
+  hostTrailing: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: theme.spacing[1.5],
+  },
+  hostText: {
+    fontSize: theme.fontSize.base,
+    color: theme.colors.foregroundMuted,
+    flexShrink: 1,
   },
 }));

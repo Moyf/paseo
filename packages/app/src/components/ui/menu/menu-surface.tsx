@@ -115,6 +115,11 @@ export interface MenuSurfaceProps {
   maxHeight?: number;
   fullWidth?: boolean;
   horizontalPadding?: number;
+  /**
+   * Clamp the popover to the window and scroll its rows inside the surface. Default true —
+   * a page with more rows than the window is otherwise clipped by the window edge with no way
+   * to reach the rest. The sheet presentation always scrolls and ignores this.
+   */
   scrollable?: boolean;
   testID?: string;
   /** Limits ordinary app shortcuts to the time this menu owns keyboard focus. */
@@ -210,7 +215,7 @@ function MenuPopoverSurface({
   maxHeight,
   fullWidth = false,
   horizontalPadding = 16,
-  scrollable = false,
+  scrollable = true,
   testID,
   keyboardFocusScope,
 }: MenuSurfaceProps): ReactElement | null {

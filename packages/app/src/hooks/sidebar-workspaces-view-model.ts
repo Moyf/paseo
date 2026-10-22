@@ -481,7 +481,7 @@ export function buildSidebarProjectsFromHostProjects(input: {
 // space once the visible sidebar spans more than one host. Counting distinct hosts
 // across the visible projects (not all connected hosts) keeps labels off when a host
 // filter pins the view to a single host.
-export function shouldShowSidebarHostLabels(projects: SidebarProjectEntry[]): boolean {
+export function shouldShowSidebarHostLabels(projects: readonly SidebarProjectEntry[]): boolean {
   const serverIds = new Set<string>();
   for (const project of projects) {
     for (const host of project.hosts) {
