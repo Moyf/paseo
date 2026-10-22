@@ -2005,7 +2005,6 @@ export const es: TranslationResources = {
         alwaysUseExtension: "Usar siempre para .{{extension}}",
         alwaysUseFilename: "Usar siempre para {{filename}}",
         option: "{{title}} — {{owner}}",
-        actions: "Acciones del archivo",
         builtin: {
           owner: "Paseo",
           markdown: "Markdown",
@@ -2024,6 +2023,8 @@ export const es: TranslationResources = {
       notFound: "No se encontró el archivo",
       failedToLoadPreview: "No se pudo cargar la vista previa del archivo",
       editor: {
+        preview: "Vista previa",
+        source: "Código fuente",
         fileSize: "Tamaño {{size}}",
         lines: "{{count}} líneas",
         editorStatus: "Estado del editor: {{status}}",

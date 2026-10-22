@@ -1987,7 +1987,6 @@ export const ru: TranslationResources = {
         alwaysUseExtension: "Всегда использовать для .{{extension}}",
         alwaysUseFilename: "Всегда использовать для {{filename}}",
         option: "{{title}} — {{owner}}",
-        actions: "Действия с файлом",
         builtin: {
           owner: "Paseo",
           markdown: "Markdown",
@@ -2006,6 +2005,8 @@ export const ru: TranslationResources = {
       notFound: "Файл не найден",
       failedToLoadPreview: "Не удалось загрузить предварительный просмотр файла.",
       editor: {
+        preview: "Предпросмотр",
+        source: "Исходный текст",
         fileSize: "Размер файла {{size}}",
         lines: "Строк: {{count}}",
         editorStatus: "Состояние редактора: {{status}}",

@@ -1978,7 +1978,6 @@ export const en = {
         alwaysUseExtension: "Always use for .{{extension}}",
         alwaysUseFilename: "Always use for {{filename}}",
         option: "{{title}} — {{owner}}",
-        actions: "File actions",
         builtin: {
           owner: "Paseo",
           markdown: "Markdown",
@@ -1997,6 +1996,8 @@ export const en = {
       notFound: "File not found",
       failedToLoadPreview: "Failed to load file preview",
       editor: {
+        preview: "Preview",
+        source: "Source",
         fileSize: "File size {{size}}",
         lines: "{{count}} lines",
         editorStatus: "Editor status {{status}}",
