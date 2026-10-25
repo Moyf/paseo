@@ -1,7 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSidebarRevealStore } from "@/components/sidebar/sidebar-reveal-store";
+import {
+  selectSidebarGroupVisibility,
+  type SidebarGroupVisibilityPolicy,
+} from "./sidebar-group-visibility";
 
-const INITIAL_VISIBLE_ITEMS = 20;
+const PINNED_POLICY = { kind: "pinned" } as const;
 
 /**
  * Sidebar groups hide their tail behind a "show more" row. A reveal request for a workspace past
@@ -10,32 +14,27 @@ const INITIAL_VISIBLE_ITEMS = 20;
  */
 export function useLimitedSidebarGroup<T extends { workspaceKey: string }>(
   items: readonly T[],
-): {
-  visibleItems: T[];
-  expanded: boolean;
-  canToggle: boolean;
-  toggleExpanded: () => void;
-} {
+  policy: SidebarGroupVisibilityPolicy<T> = PINNED_POLICY,
+) {
   const [expanded, setExpanded] = useState(false);
   const [revealExpanded, setRevealExpanded] = useState(false);
   const revealRequest = useSidebarRevealStore((state) => state.request);
   useEffect(() => {
     if (!revealRequest || revealExpanded) return;
+    const inGroup = items.some((item) => item.workspaceKey === revealRequest.workspaceKey);
+    const shownWhenCollapsed = selectSidebarGroupVisibility(items, false, policy).visibleItems;
     const hiddenByWindow =
-      items.length > INITIAL_VISIBLE_ITEMS &&
-      items
-        .slice(INITIAL_VISIBLE_ITEMS)
-        .some((item) => item.workspaceKey === revealRequest.workspaceKey);
+      inGroup &&
+      !shownWhenCollapsed.some((item) => item.workspaceKey === revealRequest.workspaceKey);
     if (hiddenByWindow) {
       setRevealExpanded(true);
     }
-  }, [items, revealExpanded, revealRequest]);
-  const visibleItems = useMemo(
-    () => (expanded || revealExpanded ? items.slice() : items.slice(0, INITIAL_VISIBLE_ITEMS)),
-    [expanded, items, revealExpanded],
+  }, [items, policy, revealExpanded, revealRequest]);
+  const visibility = useMemo(
+    () => selectSidebarGroupVisibility(items, expanded || revealExpanded, policy),
+    [expanded, items, policy, revealExpanded],
   );
-  const canToggle = items.length > INITIAL_VISIBLE_ITEMS;
   const toggleExpanded = useCallback(() => setExpanded((current) => !current), []);
 
-  return { visibleItems, expanded, canToggle, toggleExpanded };
+  return { ...visibility, expanded, toggleExpanded };
 }
