@@ -23,6 +23,10 @@ const INLINE_PAREN_LINE_SUFFIX = /^(.+?)\(([0-9]+)(?:,[0-9]+)?(?:-([0-9]+)(?:,[0
 const INLINE_WORD_LINE_SUFFIX = /^(.+?)\s+lines?\s+([0-9]+)(?:-([0-9]+))?$/i;
 export interface AssistantHrefParseOptions {
   workspaceRoot?: string;
+  /** Authored document links resolve from this directory, independently of the workspace. */
+  relativePathBase?: string;
+  /** Authored links identify a file; only inferred text needs filename heuristics. */
+  explicitLink?: boolean;
   /**
    * True only when `value` is a markdown href — the renderer percent-encodes
    * non-ASCII and space characters, so the path must be decoded. Raw path
@@ -275,7 +279,10 @@ export function classifyAssistantFileLink(
     return null;
   }
 
-  if (isAmbiguousWorkspaceCandidate(trimmed, target, options)) {
+  if (
+    (!options.explicitLink && isAmbiguousWorkspaceCandidate(trimmed, target, options)) ||
+    isWorkspaceFolderNamePrefixedCandidate(trimmed, target, options)
+  ) {
     return {
       kind: "ambiguousFileCandidate",
       target,
@@ -319,6 +326,8 @@ export function parseAssistantFileLink(
   const relativeTarget = parseWorkspaceRelativeFileLink(trimmed, {
     workspaceRoot: options.workspaceRoot,
     decodeHref: options.decodeHref,
+    explicitLink: options.explicitLink,
+    relativePathBase: options.relativePathBase,
   });
   if (relativeTarget) {
     return relativeTarget;
@@ -433,6 +442,15 @@ function parseWorkspaceRelativeFileLink(
     };
   }
 
+  const documentBase = options.explicitLink && normalizePathInput(options.relativePathBase);
+  if (documentBase) {
+    return {
+      raw: value,
+      path: resolveDocumentRelativePath(parsed.path, documentBase),
+      ...parsed.lines,
+    };
+  }
+
   const workspaceRoot = normalizePathInput(options.workspaceRoot);
   if (!workspaceRoot) {
     return null;
@@ -452,7 +470,7 @@ function parseWorkspaceRelativeFileLink(
 
 function parseLocalPathParts(
   value: string,
-  options: Pick<AssistantHrefParseOptions, "decodeHref"> = {},
+  options: Pick<AssistantHrefParseOptions, "decodeHref" | "explicitLink"> = {},
 ): {
   path: string;
   lines: Pick<InlinePathTarget, "lineStart" | "lineEnd">;
@@ -478,7 +496,7 @@ function parseLocalPathParts(
     if (options.decodeHref) {
       pathPart = safeDecodeURIComponent(pathPart);
     }
-    if (!isPlausibleAssistantLocalPath(pathPart)) {
+    if (!options.explicitLink && !isPlausibleAssistantLocalPath(pathPart)) {
       return null;
     }
     return {
@@ -499,7 +517,7 @@ function parseLocalPathParts(
     decodedBeforeHash = safeDecodeURIComponent(beforeHash);
   }
   const plausiblePath = parseInlinePathToken(decodedBeforeHash)?.path ?? decodedBeforeHash;
-  if (!isPlausibleAssistantLocalPath(plausiblePath)) {
+  if (!options.explicitLink && !isPlausibleAssistantLocalPath(plausiblePath)) {
     return null;
   }
 
@@ -605,16 +623,37 @@ function isAmbiguousWorkspaceCandidate(
     return true;
   }
 
-  // Agents often prefix workspace-relative paths with the workspace folder's own name
-  // ("myapp/src/main.ts" while working inside "myapp"). A real subfolder can carry that
-  // name too, so hand the decision to the daemon's suffix search instead of guessing
-  // which file exists.
-  const trimmedRoot = normalizedWorkspaceRoot.replace(/\/+$/, "");
+  return isWorkspaceFolderNamePrefixedPath(parsed.path, normalizedWorkspaceRoot);
+}
+
+// Agents often prefix workspace-relative paths with the workspace folder's own name
+// ("myapp/src/main.ts" while working inside "myapp"). A real subfolder can carry that
+// name too, so hand the decision to the daemon's suffix search instead of guessing
+// which file exists. This holds even for authored links, so it is checked outside
+// the explicitLink gate.
+function isWorkspaceFolderNamePrefixedCandidate(
+  value: string,
+  target: InlinePathTarget,
+  options: AssistantHrefParseOptions = {},
+): boolean {
+  const normalizedWorkspaceRoot = normalizePathInput(options.workspaceRoot);
+  if (!normalizedWorkspaceRoot || !isAllowedAbsolutePath(target.path, normalizedWorkspaceRoot)) {
+    return false;
+  }
+  const parsed = parseLocalPathParts(value, options);
+  if (!parsed || isAbsolutePath(parsed.path) || !parsed.path.includes("/")) {
+    return false;
+  }
+  return isWorkspaceFolderNamePrefixedPath(parsed.path, normalizedWorkspaceRoot);
+}
+
+function isWorkspaceFolderNamePrefixedPath(path: string, workspaceRoot: string): boolean {
+  const trimmedRoot = workspaceRoot.replace(/\/+$/, "");
   const rootFolderName = trimmedRoot === "/" ? null : (trimmedRoot.split("/").pop() ?? null);
   if (!rootFolderName) {
     return false;
   }
-  const firstSegment = parsed.path.split("/")[0];
+  const firstSegment = path.split("/")[0];
   return !!firstSegment && firstSegment.toLowerCase() === rootFolderName.toLowerCase();
 }
 
@@ -688,6 +727,24 @@ function isPlausibleAssistantFileName(fileName: string | undefined): boolean {
 
 function isDomainLikePathSegment(segment: string): boolean {
   return /^[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+$/.test(segment);
+}
+
+function resolveDocumentRelativePath(relativePath: string, baseDirectory: string): string {
+  const prefix = baseDirectory.startsWith("/") ? "/" : "";
+  const segments = baseDirectory.split("/").filter(Boolean);
+  for (const segment of relativePath.split("/")) {
+    const last = segments.at(-1) ?? "";
+    if (!segment || segment === ".") continue;
+    if (segment !== "..") {
+      segments.push(segment);
+    } else if (last && last !== "~" && last !== ".." && !/^[A-Za-z]:$/.test(last)) {
+      segments.pop();
+    } else if (!prefix && !/^[A-Za-z]:$/.test(last)) {
+      segments.push("..");
+    }
+  }
+  const resolved = prefix + segments.join("/");
+  return /^[A-Za-z]:$/.test(resolved) ? `${resolved}/` : resolved;
 }
 
 function resolveRelativePathUnderRoot(pathValue: string, workspaceRoot: string): string | null {
