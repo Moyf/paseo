@@ -1,7 +1,12 @@
 import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { TitlebarDragRegion } from "./titlebar-drag-region";
+import { Pressable, View } from "react-native";
+import {
+  TitlebarDragRegion,
+  NO_DRAG_SCOPE_ATTRIBUTE,
+  NO_DRAG_SCOPE_DATA_SET,
+} from "./titlebar-drag-region";
 
 (globalThis as Record<string, unknown>).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -171,5 +176,46 @@ describe("TitlebarDragRegion draggable-region cascade", () => {
     roots.push(root);
     act(() => root.render(<TitlebarDragRegion />));
     expect(container.innerHTML).toBe("");
+  });
+
+  // Regression: the af branch scoped the no-drag backstop and marked the window
+  // controls with a spread `data-*` attribute. react-native-web drops unknown
+  // props through its forwarded-prop whitelist, so the attribute never reached
+  // the DOM, the close/minimize/maximize buttons stopped subtracting from the
+  // draggable region, and the titlebar drag swallowed their clicks. dataSet is
+  // the only prop shape that lands a data-* attribute on an RNW element.
+  it("lands the no-drag scope attribute through react-native-web dataSet", async () => {
+    const style = document.createElement("style");
+    style.textContent = await loadBackstopCss();
+    document.head.appendChild(style);
+
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+    const root = createRoot(container);
+    roots.push(root);
+    act(() =>
+      root.render(
+        <>
+          {/* Window-controls host shape: scope on a View, button inside. */}
+          <View dataSet={NO_DRAG_SCOPE_DATA_SET} testID="scope-host">
+            <Pressable accessibilityRole="button" testID="scope-button" />
+          </View>
+          {/* Resize-handle host shape: scope carried by the interactive
+              element itself, carved out via the self-match selectors. */}
+          <View role="separator" dataSet={NO_DRAG_SCOPE_DATA_SET} testID="scope-self" />
+        </>,
+      ),
+    );
+
+    const host = document.querySelector<HTMLElement>("[data-testid='scope-host']");
+    const button = document.querySelector<HTMLElement>("[data-testid='scope-button']");
+    const self = document.querySelector<HTMLElement>("[data-testid='scope-self']");
+    expect(host?.getAttribute(NO_DRAG_SCOPE_ATTRIBUTE)).toBe("true");
+    expect(self?.getAttribute(NO_DRAG_SCOPE_ATTRIBUTE)).toBe("true");
+
+    // With the production backstop CSS, interactive descendants of the scope
+    // subtract from the draggable region — the actual clickability contract.
+    expect(window.getComputedStyle(button!).getPropertyValue("-webkit-app-region")).toBe("no-drag");
+    expect(window.getComputedStyle(self!).getPropertyValue("-webkit-app-region")).toBe("no-drag");
   });
 });

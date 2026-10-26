@@ -2,10 +2,10 @@ import {
   memo,
   useCallback,
   useMemo,
+  useRef,
   useState,
   type MutableRefObject,
   type ReactNode,
-  type Ref,
 } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -28,7 +28,7 @@ import type { HostBadgeModel } from "@/hosts/appearance";
 import { isWeb as platformIsWeb, isNative as platformIsNative } from "@/constants/platform";
 import { useIsCompactFormFactor } from "@/constants/layout";
 import { StyleSheet } from "react-native-unistyles";
-import type { Theme } from "@/styles/theme";
+import { density, densityIconBox, densityIconProps } from "@/styles/density";
 import type { SidebarSurfaceBackdrop } from "@/styles/surface-backdrop";
 import { withUnistyles } from "react-native-unistyles";
 import {
@@ -61,6 +61,17 @@ import {
 } from "@/components/sidebar/sidebar-workspace-row-content";
 import { useOpenKebabMenuVisibility } from "@/components/sidebar/use-open-kebab-menu-visibility";
 import { getSidebarRowBackdrop } from "@/components/sidebar/sidebar-row-backdrop";
+import {
+  captureWorkspaceRowPointerModifiers,
+  consumeWorkspaceRowPointerUpIntent,
+  consumeWorkspaceRowPressSuppression,
+} from "@/components/sidebar/press-modifiers";
+import type { SidebarSelectionTarget } from "@/stores/sidebar-selection-store";
+import {
+  useSidebarSelectionSegment,
+  useSidebarSelectionStore,
+} from "@/stores/sidebar-selection-store";
+import { useSidebarBatchWorkspaceActions } from "@/hooks/use-sidebar-batch-actions";
 import { getStatusDotColor } from "@/utils/status-dot-color";
 import { selectWorkspaceServiceSummary } from "@/components/sidebar/workspace-meta-row";
 import {
@@ -73,33 +84,40 @@ import {
   SidebarWorkspaceContextMenu,
   SidebarWorkspaceMenu,
 } from "@/components/sidebar/sidebar-workspace-menu";
-import { PinnedSectionHeader } from "@/components/sidebar/pinned-section-header";
+import { SidebarSectionHeader } from "@/components/sidebar/sidebar-section-header";
 import { SidebarGroupToggleRow } from "@/components/sidebar/sidebar-group-toggle-row";
 import { useLimitedSidebarGroup } from "@/components/sidebar/use-limited-sidebar-group";
 import type { ToggleSidebarWorkspacePin } from "@/hooks/use-sidebar-workspace-pin";
 import { DraggableList, type DraggableRenderItemInfo } from "@/components/draggable-list";
 import type { DraggableListDragHandleProps } from "@/components/draggable-list.types";
 import { useLongPressDragInteraction } from "@/components/sidebar/use-long-press-drag-interaction";
-import { useSidebarRowDoublePress } from "@/components/sidebar/use-sidebar-row-double-press";
+import { useDoublePress } from "@/hooks/use-double-press";
+import {
+  SidebarRevealContentAnchor,
+  SidebarRevealFlashOverlay,
+  useSidebarRevealScroller,
+} from "@/components/sidebar/sidebar-reveal";
+import { useRevealRowRef } from "@/components/sidebar/sidebar-reveal-store";
+import type { ScrollView as GestureHandlerScrollView } from "react-native-gesture-handler";
 
 // Themed icon wrappers
-const foregroundMutedColorMapping = (theme: Theme) => ({
+const mutedGroupIconProps = densityIconProps("sm", (theme) => ({
   color: theme.colors.foregroundMuted,
-});
+}));
 // One mapping per bucket, resolved through the status-dot producer so a group header and
 // the rows under it cannot disagree about what "failed" looks like.
-const needsInputColorMapping = (theme: Theme) => ({
+const needsInputGroupIconProps = densityIconProps("sm", (theme) => ({
   color: getStatusDotColor({ theme, bucket: "needs_input" }) ?? undefined,
-});
-const failedColorMapping = (theme: Theme) => ({
+}));
+const failedGroupIconProps = densityIconProps("sm", (theme) => ({
   color: getStatusDotColor({ theme, bucket: "failed" }) ?? undefined,
-});
-const attentionColorMapping = (theme: Theme) => ({
+}));
+const attentionGroupIconProps = densityIconProps("sm", (theme) => ({
   color: getStatusDotColor({ theme, bucket: "attention" }) ?? undefined,
-});
-const runningColorMapping = (theme: Theme) => ({
+}));
+const runningGroupIconProps = densityIconProps("sm", (theme) => ({
   color: getStatusDotColor({ theme, bucket: "running" }) ?? undefined,
-});
+}));
 
 const ThemedChevronDown = withUnistyles(ChevronDown);
 const ThemedChevronRight = withUnistyles(ChevronRight);
@@ -111,6 +129,14 @@ const EMPTY_SHORTCUT_INDEX = new Map<string, number>();
 
 function statusWorkspaceKeyExtractor(workspace: SidebarWorkspaceEntry): string {
   return workspace.workspaceKey;
+}
+
+function toSidebarSelectionTarget(workspace: SidebarWorkspaceEntry): SidebarSelectionTarget {
+  return {
+    serverId: workspace.serverId,
+    workspaceId: workspace.workspaceId,
+    workspaceKey: workspace.workspaceKey,
+  };
 }
 
 interface StatusWorkspaceListProps {
@@ -147,6 +173,7 @@ export function SidebarStatusWorkspaceList({
   parentGestureRef,
   dragGestureHostActive,
 }: StatusWorkspaceListProps) {
+  const { t } = useTranslation();
   const collapsedWorkspaceGroupKeys = useSidebarCollapsedSectionsStore(
     (state) => state.collapsedWorkspaceGroupKeys,
   );
@@ -154,12 +181,23 @@ export function SidebarStatusWorkspaceList({
   const togglePinnedCollapsed = useSidebarCollapsedSectionsStore(
     (state) => state.togglePinnedCollapsed,
   );
+  const scrollRef = useRef<GestureHandlerScrollView | null>(null);
+  const contentRef = useRef<View | null>(null);
+  useSidebarRevealScroller({ scrollRef, contentRef });
   const {
     visibleItems: visiblePinnedWorkspaces,
     expanded: pinnedWorkspacesExpanded,
     canToggle: canTogglePinnedWorkspaces,
     toggleExpanded: togglePinnedWorkspacesExpanded,
   } = useLimitedSidebarGroup(pinnedWorkspaces);
+
+  // Each section registers only the rows it actually renders at its visual position, so a Shift
+  // range can never reach past a "show more" boundary or into a collapsed section.
+  const pinnedSelectionTargets = useMemo(
+    () => (pinnedCollapsed ? [] : visiblePinnedWorkspaces.map(toSidebarSelectionTarget)),
+    [pinnedCollapsed, visiblePinnedWorkspaces],
+  );
+  useSidebarSelectionSegment("status:pinned", 0, pinnedSelectionTargets);
 
   const statusShortcutIndex = showShortcutBadges
     ? shortcutIndexByWorkspaceKey
@@ -203,7 +241,12 @@ export function SidebarStatusWorkspaceList({
     <>
       {pinnedWorkspaces.length > 0 ? (
         <View style={styles.pinnedSection} testID="sidebar-pinned-section">
-          <PinnedSectionHeader collapsed={pinnedCollapsed} onToggle={togglePinnedCollapsed} />
+          <SidebarSectionHeader
+            title={t("sidebar.pinned.title")}
+            collapsed={pinnedCollapsed}
+            onToggle={togglePinnedCollapsed}
+            testID="sidebar-pinned-section-header"
+          />
           {pinnedCollapsed ? null : (
             <>
               <DraggableList
@@ -252,21 +295,23 @@ export function SidebarStatusWorkspaceList({
     <View style={styles.container}>
       {platformIsNative ? (
         <NestableScrollContainer
+          ref={scrollRef}
           style={styles.list}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
           testID="sidebar-status-list-scroll"
         >
-          {content}
+          <SidebarRevealContentAnchor contentRef={contentRef}>{content}</SidebarRevealContentAnchor>
         </NestableScrollContainer>
       ) : (
         <ScrollView
+          ref={scrollRef}
           style={styles.list}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
           testID="sidebar-status-list-scroll"
         >
-          {content}
+          <SidebarRevealContentAnchor contentRef={contentRef}>{content}</SidebarRevealContentAnchor>
         </ScrollView>
       )}
     </View>
@@ -296,11 +341,12 @@ function StatusGroupList({
 }) {
   return (
     <>
-      {groups.map((group) => (
+      {groups.map((group, index) => (
         <StatusGroupRows
           key={group.key}
           group={group}
           collapsed={collapsedWorkspaceGroupKeys.has(group.key)}
+          selectionPosition={index + 1}
           projectIconByProjectViewKey={projectIconByProjectViewKey}
           shortcutIndex={shortcutIndex}
           showShortcutBadges={showShortcutBadges}
@@ -314,9 +360,15 @@ function StatusGroupList({
   );
 }
 
+const STATUS_GROUP_VISIBILITY = {
+  kind: "workspaces" as const,
+  getStatusBucket: (workspace: SidebarWorkspaceEntry) => workspace.statusBucket,
+};
+
 function StatusGroupRows({
   group,
   collapsed,
+  selectionPosition,
   projectIconByProjectViewKey,
   shortcutIndex,
   showShortcutBadges,
@@ -327,6 +379,7 @@ function StatusGroupRows({
 }: {
   group: SidebarWorkspaceGroup;
   collapsed: boolean;
+  selectionPosition: number;
   projectIconByProjectViewKey: ReadonlyMap<string, string | null>;
   shortcutIndex: Map<string, number>;
   showShortcutBadges: boolean;
@@ -340,7 +393,12 @@ function StatusGroupRows({
     expanded: workspacesExpanded,
     canToggle: canToggleWorkspaces,
     toggleExpanded: toggleWorkspacesExpanded,
-  } = useLimitedSidebarGroup(group.rows);
+  } = useLimitedSidebarGroup(group.rows, STATUS_GROUP_VISIBILITY);
+  const selectionTargets = useMemo(
+    () => (collapsed ? [] : visibleWorkspaces.map(toSidebarSelectionTarget)),
+    [collapsed, visibleWorkspaces],
+  );
+  useSidebarSelectionSegment(`status:${group.key}`, selectionPosition, selectionTargets);
 
   return (
     <View style={collapsed ? undefined : styles.statusGroupBlockExpanded}>
@@ -471,23 +529,23 @@ function StatusGroupLeadingVisual({
     return <StatusGroupIcon bucket={leading.bucket} />;
   }
   if (collapsed) {
-    return <ThemedChevronRight size={14} uniProps={foregroundMutedColorMapping} />;
+    return <ThemedChevronRight uniProps={mutedGroupIconProps} />;
   }
-  return <ThemedChevronDown size={14} uniProps={foregroundMutedColorMapping} />;
+  return <ThemedChevronDown uniProps={mutedGroupIconProps} />;
 }
 
 function StatusGroupIcon({ bucket }: { bucket: StatusBucket }) {
   switch (bucket) {
     case "needs_input":
-      return <ThemedCircleAlert size={14} uniProps={needsInputColorMapping} />;
+      return <ThemedCircleAlert uniProps={needsInputGroupIconProps} />;
     case "failed":
-      return <ThemedCircleX size={14} uniProps={failedColorMapping} />;
+      return <ThemedCircleX uniProps={failedGroupIconProps} />;
     case "attention":
-      return <ThemedCircleCheck size={14} uniProps={attentionColorMapping} />;
+      return <ThemedCircleCheck uniProps={attentionGroupIconProps} />;
     case "running":
-      return <ThemedCircleDot size={14} uniProps={runningColorMapping} />;
+      return <ThemedCircleDot uniProps={runningGroupIconProps} />;
     case "done":
-      return <ThemedCircleCheck size={14} uniProps={foregroundMutedColorMapping} />;
+      return <ThemedCircleCheck uniProps={mutedGroupIconProps} />;
   }
 }
 
@@ -502,7 +560,6 @@ const StatusWorkspaceRow = memo(function StatusWorkspaceRow({
   onToggleWorkspacePin,
   reserveIdleStatusIndicatorSpace = true,
   inStatusGroup = true,
-  onWorkspacePress,
   drag,
   isDragging = false,
   dragHandleProps,
@@ -533,9 +590,8 @@ const StatusWorkspaceRow = memo(function StatusWorkspaceRow({
 
   const handlePress = useCallback(() => {
     if (!workspace.serverId) return;
-    onWorkspacePress?.();
     navigateToWorkspace({ serverId: workspace.serverId, workspaceId: workspace.workspaceId });
-  }, [onWorkspacePress, workspace.serverId, workspace.workspaceId]);
+  }, [workspace.serverId, workspace.workspaceId]);
 
   return (
     <StatusWorkspaceRowWithMenu
@@ -660,12 +716,23 @@ function StatusWorkspaceRowWithMenu({
     });
   }, [markUnread, toast]);
 
+  // With a multi-selection that includes this row, the archive shortcut archives the whole
+  // selection — each worktree still gets its risk confirmation — instead of just the active row.
+  const isBatchRow = useSidebarSelectionStore(
+    (state) => state.selected.length > 1 && state.selectedKeys.has(workspace.workspaceKey),
+  );
+  const { archive: batchArchive } = useSidebarBatchWorkspaceActions();
+
   useKeyboardActionHandler({
     handlerId: `workspace-archive-${workspace.workspaceKey}`,
     actions: ["workspace.archive"],
     enabled: selected && !isArchiving,
     priority: 0,
     handle: () => {
+      if (isBatchRow) {
+        void batchArchive(useSidebarSelectionStore.getState().selected);
+        return true;
+      }
       handleArchive();
       return true;
     },
@@ -807,11 +874,57 @@ function StatusWorkspaceRowInnerContent({
   const startDragPress = dragInteraction?.handlePressIn;
   const moveDragPress = dragInteraction?.handleTouchMove;
   const endDragPress = dragInteraction?.handlePressOut;
-  const handlePress = useSidebarRowDoublePress({
+  const multiSelected = useSidebarSelectionStore((state) =>
+    state.selectedKeys.has(workspace.workspaceKey),
+  );
+  // Same rule as project mode: a modifier press edits the multi-selection and never navigates; a
+  // plain press clears whatever selection was building and falls through to the double-press
+  // rename handler, which also owns the long-press guard.
+  const handleNavigatePress = useDoublePress({
     onPress,
     onRename,
     didLongPressRef,
   });
+  const revealRef = useRevealRowRef(workspace.workspaceKey);
+  const setRowContainerRef = useCallback(
+    (node: View | null) => {
+      revealRef.current = node;
+      dragHandleProps?.setActivatorNodeRef?.(node);
+    },
+    [dragHandleProps, revealRef],
+  );
+  const handlePress = useCallback(() => {
+    // Same rule as project mode: modifier presses were applied at pointerup (suppression says
+    // this synthesized press is one of them); a plain press navigates, clears the selection,
+    // and becomes the next range anchor.
+    if (platformIsWeb) {
+      if (consumeWorkspaceRowPressSuppression()) {
+        return;
+      }
+      useSidebarSelectionStore.getState().handleNavigatePress({
+        serverId: workspace.serverId,
+        workspaceId: workspace.workspaceId,
+        workspaceKey: workspace.workspaceKey,
+      });
+    }
+    handleNavigatePress();
+  }, [handleNavigatePress, workspace]);
+  const handleRowPointerUp = useCallback(() => {
+    if (!platformIsWeb) {
+      return;
+    }
+    const intent = consumeWorkspaceRowPointerUpIntent();
+    if (intent) {
+      useSidebarSelectionStore.getState().handleSelectPress(
+        {
+          serverId: workspace.serverId,
+          workspaceId: workspace.workspaceId,
+          workspaceKey: workspace.workspaceKey,
+        },
+        { range: intent.kind === "range" },
+      );
+    }
+  }, [workspace]);
   const handlePressIn = useCallback(
     (event: GestureResponderEvent) => {
       setIsPressed(true);
@@ -847,15 +960,24 @@ function StatusWorkspaceRowInnerContent({
           selected,
           isHovered,
           inStatusGroup,
+          multiSelected,
           isDragging,
         });
-        const backdrop = getSidebarRowBackdrop({ isDragging, isPressed, selected, isHovered });
+        const backdrop = getSidebarRowBackdrop({
+          isDragging,
+          isPressed,
+          selected,
+          multiSelected,
+          isHovered,
+        });
         return (
           <View
             {...dragAttributes}
             {...dragHandleProps?.listeners}
-            ref={dragHandleProps?.setActivatorNodeRef as unknown as Ref<View>}
+            ref={setRowContainerRef}
             style={styles.workspaceRowContainer}
+            onPointerDown={captureWorkspaceRowPointerModifiers}
+            onPointerUp={handleRowPointerUp}
             {...hoverHandlers}
           >
             <SidebarWorkspaceContextMenu
@@ -928,6 +1050,7 @@ function StatusWorkspaceRowInnerContent({
                 ) : null}
               </SidebarWorkspaceRowContent>
             </SidebarWorkspaceContextMenu>
+            <SidebarRevealFlashOverlay workspaceKey={workspace.workspaceKey} />
           </View>
         );
       }}
@@ -1017,18 +1140,25 @@ function getStatusWorkspaceRowStyle({
   selected,
   isHovered,
   inStatusGroup,
+  multiSelected,
   isDragging,
 }: {
   isPressed: boolean;
   selected: boolean;
   isHovered: boolean;
   inStatusGroup: boolean;
+  multiSelected: boolean;
   isDragging: boolean;
 }) {
   return [
     styles.workspaceRow,
     inStatusGroup && sidebarWorkspaceRowStyles.rowIndented,
     isHovered && styles.workspaceRowHovered,
+    // Multi-selected first: the active row's selected surface must win when a row is both
+    // (a plain press single-selects the active row), and it is the brighter of the two — the
+    // meta label colours are tuned against it.
+    multiSelected &&
+      (isHovered ? styles.sidebarRowMultiSelectedHovered : styles.sidebarRowMultiSelected),
     selected && styles.sidebarRowSelected,
     isDragging && styles.workspaceRowDragging,
     isPressed && styles.workspaceRowPressed,
@@ -1057,7 +1187,7 @@ const styles = StyleSheet.create((theme) => ({
   },
   statusWorkspaceListContainer: {},
   statusGroupRow: {
-    minHeight: 36,
+    minHeight: density.rowHeight,
     paddingVertical: theme.spacing[2],
     paddingHorizontal: theme.spacing[2],
     borderRadius: theme.borderRadius.lg,
@@ -1083,8 +1213,8 @@ const styles = StyleSheet.create((theme) => ({
   },
   statusGroupLeadingVisualSlot: {
     position: "relative",
-    width: theme.iconSize.md,
-    height: theme.iconSize.md,
+    width: densityIconBox("md"),
+    height: densityIconBox("md"),
     flexShrink: 0,
     alignItems: "center",
     justifyContent: "center",
@@ -1107,7 +1237,7 @@ const styles = StyleSheet.create((theme) => ({
     position: "relative",
   },
   workspaceRow: {
-    minHeight: 36,
+    minHeight: density.rowHeight,
     marginBottom: theme.spacing[0.5],
     paddingVertical: theme.spacing[2],
     paddingLeft: theme.spacing[2],
@@ -1135,5 +1265,13 @@ const styles = StyleSheet.create((theme) => ({
   },
   sidebarRowSelected: {
     backgroundColor: theme.colors.surfaceSidebarSelected,
+  },
+  // Same rule as project mode: a multi-selected row rests at hover strength and hover hands it
+  // the pressed surface. See sidebarRowMultiSelected in sidebar-workspace-list.tsx.
+  sidebarRowMultiSelected: {
+    backgroundColor: theme.colors.surfaceSidebarHover,
+  },
+  sidebarRowMultiSelectedHovered: {
+    backgroundColor: theme.colors.surface2,
   },
 }));

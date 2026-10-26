@@ -102,11 +102,50 @@ function getErrorMessage(error: unknown): string {
   return String(error);
 }
 
+interface PendingStatusFormatInput {
+  version: string | null | undefined;
+  autoUpdate: boolean;
+  lastCheckedAt: number | null;
+  formatVersion: (version: string | null | undefined) => string;
+  formatLastCheckedAt: (timestamp: number) => string;
+}
+
+function formatPendingStatus(input: PendingStatusFormatInput): string {
+  const { version, autoUpdate, lastCheckedAt, formatVersion, formatLastCheckedAt } = input;
+  const time = lastCheckedAt != null ? formatLastCheckedAt(lastCheckedAt) : undefined;
+
+  if (version && !autoUpdate) {
+    return i18n.t(
+      lastCheckedAt != null
+        ? "desktop.updates.status.pendingNotifyOnlyWithLastChecked"
+        : "desktop.updates.status.pendingNotifyOnly",
+      { version: formatVersion(version), time },
+    );
+  }
+
+  if (version) {
+    return i18n.t(
+      lastCheckedAt != null
+        ? "desktop.updates.status.pendingWithVersionAndLastChecked"
+        : "desktop.updates.status.pendingWithVersion",
+      { version: formatVersion(version), time },
+    );
+  }
+
+  if (lastCheckedAt != null) {
+    return i18n.t("desktop.updates.status.pendingWithLastChecked", {
+      time: formatLastCheckedAt(lastCheckedAt),
+    });
+  }
+  return i18n.t("desktop.updates.status.pending");
+}
+
 export function formatStatusText(input: {
   status: DesktopAppUpdateStatus;
   availableUpdate: DesktopAppUpdateCheckResult | null;
   installMessage: string | null;
   lastCheckedAt: number | null;
+  autoUpdate: boolean;
   formatVersion: (version: string | null | undefined) => string;
   formatLastCheckedAt: (timestamp: number) => string;
 }): string {
@@ -115,6 +154,7 @@ export function formatStatusText(input: {
     availableUpdate,
     installMessage,
     lastCheckedAt,
+    autoUpdate,
     formatVersion,
     formatLastCheckedAt,
   } = input;
@@ -137,24 +177,13 @@ export function formatStatusText(input: {
   }
 
   if (status === "pending") {
-    if (availableUpdate?.latestVersion) {
-      return i18n.t(
-        lastCheckedAt != null
-          ? "desktop.updates.status.pendingWithVersionAndLastChecked"
-          : "desktop.updates.status.pendingWithVersion",
-        {
-          version: formatVersion(availableUpdate.latestVersion),
-          time: lastCheckedAt != null ? formatLastCheckedAt(lastCheckedAt) : undefined,
-        },
-      );
-    }
-
-    if (lastCheckedAt != null) {
-      return i18n.t("desktop.updates.status.pendingWithLastChecked", {
-        time: formatLastCheckedAt(lastCheckedAt),
-      });
-    }
-    return i18n.t("desktop.updates.status.pending");
+    return formatPendingStatus({
+      version: availableUpdate?.latestVersion,
+      autoUpdate,
+      lastCheckedAt,
+      formatVersion,
+      formatLastCheckedAt,
+    });
   }
 
   if (status === "available") {

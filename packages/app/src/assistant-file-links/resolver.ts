@@ -17,6 +17,7 @@ export interface AssistantFileLinkSource {
 
 export interface AssistantFileLinkContext {
   workspaceRoot?: string;
+  relativePathBase?: string;
 }
 
 export interface DirectorySuggestionEntry {
@@ -79,21 +80,33 @@ export async function fetchDaemonResolution({
     throw new UnresolvedFileLinkError(token);
   }
 
-  let suggestions: DirectorySuggestionResult;
-  try {
-    suggestions = await getDirectorySuggestions({
-      query: ambiguousQuery,
-      cwd: trimmedRoot,
-      includeFiles: true,
-      includeDirectories: false,
-      matchMode: "suffix",
-      limit: 1,
-    });
-  } catch {
-    throw new UnresolvedFileLinkError(token);
+  const searchSuggestions = async (query: string): Promise<DirectorySuggestionResult> => {
+    try {
+      return await getDirectorySuggestions({
+        query,
+        cwd: trimmedRoot,
+        includeFiles: true,
+        includeDirectories: false,
+        matchMode: "suffix",
+        limit: 1,
+      });
+    } catch {
+      throw new UnresolvedFileLinkError(token);
+    }
+  };
+
+  let suggestions = await searchSuggestions(ambiguousQuery);
+  let match = suggestions.entries.find((entry) => entry.kind === "file");
+  if (!match && !suggestions.error) {
+    // Agents often prefix workspace-relative paths with the workspace folder's own name.
+    // The strict suffix search misses those, so retry once without that prefix.
+    const strippedQuery = stripWorkspaceFolderNamePrefix(ambiguousQuery, trimmedRoot);
+    if (strippedQuery !== ambiguousQuery) {
+      suggestions = await searchSuggestions(strippedQuery);
+      match = suggestions.entries.find((entry) => entry.kind === "file");
+    }
   }
 
-  const match = suggestions.entries.find((entry) => entry.kind === "file");
   if (!match || suggestions.error) {
     throw new UnresolvedFileLinkError(token);
   }
@@ -104,17 +117,35 @@ export async function fetchDaemonResolution({
   };
 }
 
+function stripWorkspaceFolderNamePrefix(query: string, workspaceRoot: string): string {
+  const trimmedRoot = workspaceRoot.replace(/\/+$/, "");
+  const rootFolderName = trimmedRoot === "/" ? null : (trimmedRoot.split("/").pop() ?? null);
+  if (!rootFolderName) {
+    return query;
+  }
+  const segments = query.split("/");
+  const firstSegment = segments[0];
+  if (segments.length > 1 && firstSegment?.toLowerCase() === rootFolderName.toLowerCase()) {
+    return segments.slice(1).join("/");
+  }
+  return query;
+}
+
 export function classifyForResolution(
   source: AssistantFileLinkSource,
   context: AssistantFileLinkContext,
 ): AssistantFileLinkResolution {
-  const token = getAssistantFileLinkToken(source).trim();
+  const tokenInfo = getAssistantFileLinkTokenInfo(source);
+  const token = tokenInfo.token.trim();
   if (!token) {
     return { kind: "resolved", value: { kind: "ignored" } };
   }
 
   const classification = classifyAssistantFileLink(token, {
     workspaceRoot: context.workspaceRoot,
+    decodeHref: tokenInfo.fromHref,
+    explicitLink: source.sourceType !== "inline-code" && !isLinkifiedSource(source),
+    relativePathBase: context.relativePathBase,
   });
   if (!classification) {
     return { kind: "resolved", value: { kind: "ignored" } };
@@ -148,14 +179,26 @@ export function classifyForResolution(
 }
 
 export function getAssistantFileLinkToken(source: AssistantFileLinkSource): string {
-  if (isLinkifiedSource(source) || source.sourceType === "inline-code") {
+  return getAssistantFileLinkTokenInfo(source).token;
+}
+
+// Markdown link hrefs are percent-encoded by the renderer; inline-code and
+// linkified text are raw file paths that must not be decoded.
+function getAssistantFileLinkTokenInfo(source: AssistantFileLinkSource): {
+  token: string;
+  fromHref: boolean;
+} {
+  if (source.sourceType === "inline-code") {
+    return { token: source.text?.trim() || source.href, fromHref: false };
+  }
+  if (isLinkifiedSource(source)) {
     const text = source.text?.trim();
     if (text && isFileLookingAssistantToken(text)) {
-      return text;
+      return { token: text, fromHref: false };
     }
   }
 
-  return source.href;
+  return { token: source.href, fromHref: true };
 }
 
 export function getAmbiguousSuggestionQuery(

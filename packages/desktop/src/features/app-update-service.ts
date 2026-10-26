@@ -35,6 +35,7 @@ export interface RuntimeUpdateCheckResult {
 
 export interface AppUpdateRuntimeConfiguration {
   releaseChannel: AppReleaseChannel;
+  autoDownload: boolean;
   shouldAdmitUpdate(info: RuntimeUpdateInfo): boolean | Promise<boolean>;
   onUpdateAvailable(info: RuntimeUpdateInfo): void;
   onUpdateDownloaded(info: RuntimeUpdateInfo): void;
@@ -59,6 +60,7 @@ export interface AppUpdateService {
     currentVersion: string;
     releaseChannel: AppReleaseChannel;
     intent: AppUpdateCheckIntent;
+    autoDownload?: boolean;
   }): Promise<AppUpdateCheckResult>;
   downloadAndInstallUpdate(
     input: {
@@ -70,6 +72,7 @@ export interface AppUpdateService {
   installUpdateOnQuit(input: {
     currentVersion: string;
     releaseChannel: AppReleaseChannel;
+    autoUpdate: boolean;
     signal: AbortSignal;
   }): Promise<boolean>;
 }
@@ -176,7 +179,11 @@ export function createAppUpdateService(deps: AppUpdateServiceDeps): AppUpdateSer
     });
   }
 
-  function configureRuntime(releaseChannel: AppReleaseChannel, intent: AppUpdateCheckIntent): void {
+  function configureRuntime(
+    releaseChannel: AppReleaseChannel,
+    intent: AppUpdateCheckIntent,
+    autoDownload: boolean,
+  ): void {
     if (configuredReleaseChannel !== releaseChannel) {
       clearUpdateState();
       configuredReleaseChannel = releaseChannel;
@@ -184,6 +191,7 @@ export function createAppUpdateService(deps: AppUpdateServiceDeps): AppUpdateSer
 
     deps.runtime.configure({
       releaseChannel,
+      autoDownload,
       shouldAdmitUpdate: async (info) => {
         const parsed = rolloutManifestSchema.parse(info);
         return shouldAdmitAppUpdate({
@@ -241,10 +249,12 @@ export function createAppUpdateService(deps: AppUpdateServiceDeps): AppUpdateSer
     currentVersion,
     releaseChannel,
     intent,
+    autoDownload = true,
   }: {
     currentVersion: string;
     releaseChannel: AppReleaseChannel;
     intent: AppUpdateCheckIntent;
+    autoDownload?: boolean;
   }): Promise<AppUpdateCheckResult> {
     if (!deps.isPackaged()) {
       return buildCheckResult({
@@ -255,7 +265,7 @@ export function createAppUpdateService(deps: AppUpdateServiceDeps): AppUpdateSer
     }
 
     return runCheckExclusively(async () => {
-      configureRuntime(releaseChannel, intent);
+      configureRuntime(releaseChannel, intent, autoDownload);
 
       try {
         const result = await deps.runtime.checkForUpdates();
@@ -345,6 +355,9 @@ export function createAppUpdateService(deps: AppUpdateServiceDeps): AppUpdateSer
       currentVersion,
       releaseChannel,
       intent: "manual",
+      // A manual install is an explicit download request regardless of the
+      // auto-update preference.
+      autoDownload: true,
     });
     if (!check.hasUpdate) {
       return {
@@ -467,13 +480,15 @@ export function createAppUpdateService(deps: AppUpdateServiceDeps): AppUpdateSer
   async function installUpdateOnQuit({
     currentVersion,
     releaseChannel,
+    autoUpdate,
     signal,
   }: {
     currentVersion: string;
     releaseChannel: AppReleaseChannel;
+    autoUpdate: boolean;
     signal: AbortSignal;
   }): Promise<boolean> {
-    if (!deps.isPackaged() || !downloadedUpdateVersion) {
+    if (!deps.isPackaged() || !autoUpdate || !downloadedUpdateVersion) {
       return false;
     }
 
@@ -481,6 +496,7 @@ export function createAppUpdateService(deps: AppUpdateServiceDeps): AppUpdateSer
       currentVersion,
       releaseChannel,
       intent: "automatic",
+      autoDownload: true,
     });
     if (signal.aborted || !check.hasUpdate) {
       return false;

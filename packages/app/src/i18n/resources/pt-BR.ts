@@ -31,6 +31,7 @@ export const ptBR: TranslationResources = {
     back: "Voltar",
     loading: "Carregando...",
     actions: {
+      save: "Salvar",
       back: "Voltar",
       cancel: "Cancelar",
       close: "Fechar",
@@ -124,6 +125,8 @@ export const ptBR: TranslationResources = {
     input: {
       accessibilityLabel: "Enviar mensagem ao agente...",
       terminalAccessibilityLabel: "Terminal prompt",
+      fullscreen: "Tela cheia",
+      exitFullscreen: "Sair da tela cheia",
       focusHint: "{{shortcut}} para focar",
       addAttachment: "Adicionar anexo",
       interruptAgent: "Interromper agente",
@@ -284,6 +287,7 @@ export const ptBR: TranslationResources = {
     tooManyMatches: "Muitos resultados — refine a busca",
     hostLoadFailed: "{{host}}: Não foi possível carregar o histórico",
     searchPlaceholder: "Buscar no histórico",
+    hideArchived: "Ocultar arquivados",
     actions: {
       loadMore: "Carregar mais",
       clearSearch: "Limpar busca",
@@ -361,6 +365,7 @@ export const ptBR: TranslationResources = {
       details: "Detalhes",
     },
     dictation: {
+      paused: "Microfone interrompido. Aguardando para retomar…",
       start: "Iniciar ditado por voz",
       cancel: "Cancelar ditado",
       retry: "Tentar ditado novamente",
@@ -370,6 +375,7 @@ export const ptBR: TranslationResources = {
       failedRetry: "Falha no ditado. Toque para tentar novamente.",
     },
     question: {
+      responseFailed: "Não foi possível enviar sua resposta. Tente novamente.",
       submit: "Enviar",
       next: "Próximo",
       answerPlaceholder: "Digite sua resposta...",
@@ -530,6 +536,8 @@ export const ptBR: TranslationResources = {
         renameFailed: "Falha ao renomear entrada",
         duplicateFailed: "Falha ao duplicar entrada",
         revealFailed: "Falha ao mostrar entrada",
+        externalFolderUnavailable:
+          "Pastas fora do espaço de trabalho só podem ser abertas no gerenciador de arquivos do sistema.",
         deleteFailed: "Falha ao excluir entrada",
       },
       draft: {
@@ -538,6 +546,7 @@ export const ptBR: TranslationResources = {
       },
     },
     setup: {
+      updateHost: "Atualize o host para ver os detalhes da configuração do espaço de trabalho",
       descriptor: {
         label: "Configuração",
         completed: "Configuração concluída",
@@ -614,6 +623,12 @@ export const ptBR: TranslationResources = {
       hostDisconnected: "Host não está conectado",
       updateHost: "Atualize o host para usar o renderizador de terminal nativo.",
       unableToSubscribe: "Não foi possível assinar o terminal",
+      fileUploaded: "Arquivo enviado",
+      pasteFileFailed: "Falha ao colar o arquivo: {{reason}}",
+      uploadingFile: "Enviando arquivo…",
+    },
+    sheet: {
+      openAsTab: "Abrir como aba",
     },
     tabs: {
       loading: "Carregando...",
@@ -630,7 +645,7 @@ export const ptBR: TranslationResources = {
       },
       switcher: {
         trigger: "Alternar abas ({{count}} abertas)",
-        title: "Alternar aba",
+        title: "Abas do workspace",
         searchPlaceholder: "Buscar abas",
       },
       menu: {
@@ -727,6 +742,7 @@ export const ptBR: TranslationResources = {
     header: {
       actions: {
         workspaceActions: "Ações do workspace",
+        workspaceActionsUnhealthy: "Ações do workspace, há um serviço com problema",
         newAgent: "Novo agente",
         newTerminal: "Novo terminal",
         newBrowser: "Nova aba de navegador",
@@ -774,6 +790,8 @@ export const ptBR: TranslationResources = {
         exitCode: "saída {{code}}",
         startFailed: "Falha ao iniciar {{scriptName}}",
         stopFailed: "Falha ao parar {{scriptName}}",
+        running: "Em execução",
+        runningCount: "{{count}} em execução",
       },
     },
     tree: {
@@ -967,6 +985,7 @@ export const ptBR: TranslationResources = {
         checkingRepository: "Verificando repositório...",
         notRepository: "Não é um repositório git",
         diffMode: "Modo de diff",
+        all: "Todas as alterações",
         uncommitted: "Sem commit",
         committed: "Com commit",
         branchUnknown: "Desconhecido",
@@ -1173,8 +1192,16 @@ export const ptBR: TranslationResources = {
       done: "Concluído",
     },
     display: {
+      showBackground: "Mostrar espaços em segundo plano",
       trigger: "Preferências de exibição",
       heading: "Exibição",
+      sort: {
+        label: "Ordenação",
+        created: "Criação",
+        manual: "Manual",
+        lastPrompt: "Último prompt",
+        updateHost: "Atualize os hosts para ordenar os espaços de trabalho",
+      },
       grouping: {
         label: "Agrupamento",
         project: "Projeto",
@@ -1310,11 +1337,24 @@ export const ptBR: TranslationResources = {
         rename: "Renomear workspace",
         pin: "Fixar no topo",
         unpin: "Desafixar",
+        revealInSidebar: "Mostrar na barra lateral",
         archive: "Arquivar",
         archiveWorkspace: "Arquivar workspace",
         hideFromSidebar: "Ocultar da barra lateral",
         archiving: "Arquivando...",
         hiding: "Ocultando...",
+      },
+      batch: {
+        pin_one: "Fixar {{count}} workspace",
+        pin_other: "Fixar {{count}} workspaces",
+        unpin_one: "Desafixar {{count}} workspace",
+        unpin_other: "Desafixar {{count}} workspaces",
+        markUnread_one: "Marcar {{count}} workspace como não lido",
+        markUnread_other: "Marcar {{count}} workspaces como não lidos",
+        archive_one: "Arquivar {{count}} workspace",
+        archive_other: "Arquivar {{count}} workspaces",
+        addLabel: "Adicionar rótulo",
+        deselect: "Desmarcar tudo",
       },
       confirmations: {
         hideTitle: "Ocultar workspace?",
@@ -1335,6 +1375,10 @@ export const ptBR: TranslationResources = {
         hostDisconnected: "Host não está conectado",
         hideFailed: "Falha ao ocultar workspace",
         archiveFailed: "Falha ao arquivar workspace",
+        batchPinFailed: "Falha ao fixar {{count}} workspaces",
+        batchMarkUnreadFailed: "Falha ao marcar {{count}} workspaces como não lidos",
+        batchArchiveFailed_one: "Falha ao arquivar 1 de {{total}} workspaces",
+        batchArchiveFailed_other: "Falha ao arquivar {{count}} de {{total}} workspaces",
       },
     },
   },
@@ -1348,8 +1392,9 @@ export const ptBR: TranslationResources = {
     },
     fields: {
       project: "Projeto",
-      base: "Base",
+      branch: "Branch",
       baseNotApplicable: "Não aplicável",
+      host: "Host",
     },
     titlePlaceholder: "Título (opcional)",
     errors: {
@@ -1454,6 +1499,10 @@ export const ptBR: TranslationResources = {
         pending: "Avisaremos quando a atualização estiver pronta.",
         pendingWithLastChecked:
           "Avisaremos quando a atualização estiver pronta. Última verificação às {{time}}.",
+        pendingNotifyOnly:
+          "Atualização encontrada: {{version}}. As atualizações automáticas estão desativadas.",
+        pendingNotifyOnlyWithLastChecked:
+          "Atualização encontrada: {{version}}. As atualizações automáticas estão desativadas. Última verificação: {{time}}.",
         pendingWithVersion: "Atualização encontrada: {{version}}. Baixando...",
         pendingWithVersionAndLastChecked:
           "Atualização encontrada: {{version}}. Baixando... Última verificação às {{time}}.",
@@ -1479,6 +1528,10 @@ export const ptBR: TranslationResources = {
         installingDescription: "Instalando e reiniciando...",
         versionReady: "{{version}} está pronta para instalar.",
         newVersionReady: "Uma nova versão está pronta para instalar.",
+        foundNotifyOnly:
+          "{{version}} está disponível. As atualizações automáticas estão desativadas.",
+        foundNotifyOnlyNoVersion:
+          "Uma nova versão está disponível. As atualizações automáticas estão desativadas.",
         restartWarning:
           "Atualizar o app vai interromper agentes em execução e fechar sessões de terminal.",
       },
@@ -1681,13 +1734,18 @@ export const ptBR: TranslationResources = {
     title: "Adicionar provedor",
     search: "Buscar provedores",
     noProviders: "Nenhum provedor encontrado",
+    clearSearch: "Limpar pesquisa",
     actions: {
       add: "Adicionar",
+      addProvider: "Adicionar {{provider}}",
       adding: "Adicionando",
       installed: "Instalado",
       cancel: "Cancelar",
       installInstructions: "Instruções de instalação",
       installInstructionsFor: "Instruções de instalação de {{provider}}",
+    },
+    types: {
+      acp: "ACP",
     },
     errors: {
       unableToInstall: "Não foi possível instalar provedor",
@@ -1932,14 +1990,35 @@ export const ptBR: TranslationResources = {
       creatingAgent: "Criando agente",
     },
     file: {
+      filePanels: {
+        pickerTitleExtension: "Abrir arquivos .{{extension}} com",
+        pickerTitleFilename: "Abrir {{filename}} com",
+        dontAskAgain: "Não perguntar novamente",
+        use: "Usar",
+        openWith: "Abrir com…",
+        alwaysUseExtension: "Sempre usar para .{{extension}}",
+        alwaysUseFilename: "Sempre usar para {{filename}}",
+        option: "{{title}} — {{owner}}",
+        builtin: {
+          owner: "Paseo",
+          markdown: "Markdown",
+          html: "HTML",
+          image: "Imagem",
+          source: "Fonte",
+        },
+      },
       directoryMissing: "Diretório do workspace não encontrado.",
       loading: "Carregando arquivo...",
       noPreview: "Nenhuma prévia disponível",
       binaryPreviewUnavailable: "Prévia binária indisponível",
       tooLargeToDisplay: "Este arquivo é grande demais para exibir",
+      documentUnsupported: "Arquivos {{type}} não podem ser exibidos neste dispositivo",
       failedToLoad: "Falha ao carregar arquivo",
+      notFound: "Arquivo não encontrado",
       failedToLoadPreview: "Falha ao carregar prévia do arquivo",
       editor: {
+        preview: "Prévia",
+        source: "Fonte",
         fileSize: "Tamanho {{size}}",
         lines: "{{count}} linhas",
         editorStatus: "Status do editor: {{status}}",
@@ -1949,10 +2028,7 @@ export const ptBR: TranslationResources = {
         changedOnDisk: "Alterado no disco",
         vimMode: "Modo Vim {{mode}}",
         cursor: "Linha {{line}}, coluna {{column}}",
-        preview: "Prévia",
-        source: "Fonte",
         deletedTitle: "Arquivo excluído do disco",
-        checkFailedTitle: "Não foi possível verificar o arquivo no disco",
         preservedDescription: "A cópia aberta foi preservada.",
         conflictDescription: "O conteúdo local foi preservado. Escolha qual versão manter.",
         overwrite: "Sobrescrever",
@@ -2037,6 +2113,17 @@ export const ptBR: TranslationResources = {
     accessibility: "Janela de contexto {{percentage}}% usada",
   },
   review: {
+    feedback: {
+      send: "Enviar comentários ({{count}})",
+      sending: "Enviando comentários ({{count}})",
+      chooseAgent: "Escolher um agente",
+      sent: "Comentários enviados para {{recipient}}",
+      "no-agents": "Abra uma aba de agente neste espaço de trabalho para enviar comentários.",
+      disconnected: "Conecte-se ao host para enviar comentários.",
+      "no-context": "Os comentários salvos não correspondem mais a este diff.",
+      failed: "Falha ao enviar comentários. Tente novamente.",
+      prompt: "Por favor, atenda a esta revisão de código.",
+    },
     comment: {
       add: "Adicionar comentário de revisão",
       edit: "Editar comentário de revisão",
@@ -2047,6 +2134,70 @@ export const ptBR: TranslationResources = {
       cancelAccessibility: "Cancelar comentário de revisão",
       save: "Comentar",
       saveAccessibility: "Salvar comentário de revisão",
+    },
+  },
+  providerUsage: {
+    options: "Configurações",
+    refreshFailed: "Não foi possível atualizar o uso",
+    noHosts: "Nenhum host conectado",
+    agentError: "Não foi possível carregar o uso: {{reason}}",
+    pin: "Fixar",
+    unpin: "Desafixar",
+    displayAs: "Porcentagens",
+    displayUsed: "Usado",
+    displayRemaining: "Restante",
+    showInSidebar: "Resumo na barra lateral",
+    showInSidebarHint: "Os períodos fixados aparecem no rodapé da barra lateral",
+    runToRefresh: "Execute {{command}} para atualizar.",
+    signInAgain: "Entre novamente.",
+    loginRejected: "Login rejeitado (HTTP {{status}}). {{remedy}}",
+    loginExpired: "O login expirou {{relativeTime}}. {{remedy}}",
+    title: "Uso do plano",
+    refresh: "Atualizar",
+    refreshAll: "Atualizar tudo",
+    refreshing: "Atualizando...",
+    loading: "Carregando uso...",
+    empty: "Sem dados de uso",
+    errorTitle: "Não foi possível carregar o uso",
+    hostUnavailable: "Conecte-se a {{host}} para ver o uso do provedor",
+    hostUpgradeRequired: "Atualize {{host}} para ver o uso do provedor",
+    clientUnavailable: "A conexão com o host não está pronta",
+    retry: "Tentar novamente",
+    tooltipLoading: "Carregando uso do plano...",
+    status: {
+      error: "Erro",
+      unavailable: "Indisponível",
+    },
+    values: {
+      used: "{{percentage}} usado",
+      remaining: "{{amount}} restantes",
+    },
+    labels: {
+      session: "Sessão",
+      weekly: "Semanal",
+      monthly: "Mensal",
+      codeReview: "Revisão de código",
+      credits: "Créditos",
+      monthlyCredits: "Créditos mensais",
+    },
+    duration: {
+      days: "{{value}} d",
+      hours: "{{value}} h",
+      minutes: "{{value}} min",
+    },
+    timing: {
+      lastUpdated: "Última atualização {{relativeTime}}",
+      noSuccessfulUpdate: "Nenhuma atualização bem-sucedida",
+      resetTimePassed: "O horário de redefinição passou",
+      resettingNow: "redefinindo agora",
+      resetsIn: "redefine em {{duration}}",
+      runsOutNow: "esgota agora",
+      runsOutIn: "esgota em {{duration}}",
+      justNow: "agora mesmo",
+      daysAgo: "há {{value}} d",
+      hoursAgo: "há {{value}} h",
+      minutesAgo: "há {{value}} min",
+      updated: "Atualizado {{relativeTime}}",
     },
   },
   settings: {
@@ -2077,6 +2228,7 @@ export const ptBR: TranslationResources = {
       terminal: "Terminal",
       browser: "Navegador",
       editor: "Editor",
+      files: "Arquivos",
       shortcuts: "Atalhos",
       integrations: "Integrações",
       notifications: "Notificações",
@@ -2089,6 +2241,14 @@ export const ptBR: TranslationResources = {
       title: "Editor",
       vimKeybindings: "Atalhos do Vim",
       vimHint: "Aplica-se a arquivos-fonte na web e no desktop.",
+    },
+    files: {
+      title: "Arquivos",
+      askEveryTime: "Perguntar sempre",
+      askAgain: "Perguntar de novo",
+      askAgainFor: "Perguntar de novo para {{label}}",
+      unavailable: "Não está em um host conectado",
+      empty: "Os painéis de arquivo aparecem aqui quando um plugin adiciona um",
     },
     notifications: {
       title: "Notificações",
@@ -2128,7 +2288,7 @@ export const ptBR: TranslationResources = {
       automaticHint: "O Paseo escolhe um modelo rápido disponível",
       preferredHint: "Escolha o modelo que o Paseo usa",
       model: "Modelo",
-      fallbackHint: "Se ele não estiver disponível, o Paseo usa outro modelo disponível",
+      modelHint: "Somente este modelo é usado. Se ele falhar, o Paseo não tenta outro modelo",
       docs: "Documentação",
       saveError: "Não foi possível atualizar a geração de metadados",
     },
@@ -2206,11 +2366,6 @@ export const ptBR: TranslationResources = {
     },
     diagnostics: {
       title: "Diagnósticos",
-      legacyTerminalRenderer: {
-        label: "Usar renderizador de terminal anterior",
-        description: "Usa o terminal WebView anterior após reabrir um terminal",
-        accessibilityLabel: "Usar renderizador de terminal anterior",
-      },
       testAudio: "Testar áudio",
       playTest: "Reproduzir teste",
       playing: "Reproduzindo...",
@@ -2248,6 +2403,11 @@ export const ptBR: TranslationResources = {
       },
       updates: {
         label: "Atualizações do app",
+        autoUpdate: {
+          label: "Atualizações automáticas",
+          description:
+            "Baixa e instala atualizações automaticamente. Quando desativado, você será avisado sobre novas versões e poderá instalá-las manualmente.",
+        },
         readyToInstall: "Pronta para instalar: {{version}}",
         installTitle: "Instalar atualização desktop",
         installMessage: "Isso atualiza o Paseo neste computador",
@@ -2339,6 +2499,7 @@ export const ptBR: TranslationResources = {
       searchPlaceholder: "Pesquisar atalhos",
       unavailableOnMobile: "Atalhos de teclado estão disponíveis apenas no desktop",
       capturePrompt: "Pressione o atalho...",
+      captureIndexPrompt: "Termine com um número de 1 a 9.",
       unassigned: "Não definido",
       actions: {
         menu: "Ações para {{name}}",

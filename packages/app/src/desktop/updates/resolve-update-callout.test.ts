@@ -10,6 +10,7 @@ function input(overrides: Partial<ResolveUpdateCalloutInput> = {}): ResolveUpdat
     isDesktopApp: true,
     status: "available",
     isInstalling: false,
+    autoUpdate: true,
     availableUpdate: { latestVersion: "1.2.3" },
     errorMessage: null,
     ...overrides,
@@ -25,6 +26,27 @@ describe("resolveUpdateCalloutDescriptor", () => {
     for (const status of ["idle", "checking", "up-to-date", "pending"] as const) {
       expect(resolveUpdateCalloutDescriptor(input({ status }))).toBeNull();
     }
+  });
+
+  it("reminds about a pending update when auto-update is off", () => {
+    const descriptor = resolveUpdateCalloutDescriptor(
+      input({ status: "pending", autoUpdate: false }),
+    );
+
+    expect(descriptor).not.toBeNull();
+    expect(descriptor?.title).toBe("Update available");
+    expect(descriptor?.body).toEqual({ kind: "found", versionLabel: "v1.2.3" });
+    expect(descriptor?.showGiftIcon).toBe(true);
+    expect(descriptor?.variant).toBe("default");
+    expect(descriptor?.actions).toEqual([
+      { role: "changelog", label: "What's new" },
+      { role: "install", label: "Install & restart", variant: "primary", disabled: false },
+    ]);
+    expect(descriptor?.dismissalKey).toBe("desktop-update:pending:1.2.3");
+  });
+
+  it("stays silent for a pending update when auto-update is on", () => {
+    expect(resolveUpdateCalloutDescriptor(input({ status: "pending" }))).toBeNull();
   });
 
   it("builds an update-available descriptor with changelog + install actions", () => {

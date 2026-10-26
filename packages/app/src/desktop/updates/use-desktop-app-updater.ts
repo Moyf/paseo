@@ -22,6 +22,7 @@ export type { DesktopAppUpdateStatus };
 
 export interface UseDesktopAppUpdaterReturn {
   isDesktopApp: boolean;
+  autoUpdate: boolean;
   status: DesktopAppUpdateStatus;
   statusText: string;
   availableUpdate: DesktopAppUpdateCheckResult | null;
@@ -40,6 +41,7 @@ export function useDesktopAppUpdater(): UseDesktopAppUpdaterReturn {
   const isDesktopApp = shouldShowDesktopUpdateSection();
   const { settings: desktopSettings } = useDesktopSettings();
   const releaseChannel = desktopSettings.releaseChannel;
+  const autoUpdate = desktopSettings.autoUpdate;
   const reportError = useDesktopIpcErrorReporter();
 
   const updater = useMemo(
@@ -86,11 +88,15 @@ export function useDesktopAppUpdater(): UseDesktopAppUpdaterReturn {
     if (!isDesktopApp) {
       return;
     }
+    // Re-running on autoUpdate flips reconfigures the desktop updater: turning
+    // auto-update on starts the pending download, turning it off stops future ones.
     void checkForUpdates({ intent: "automatic", silent: true });
-  }, [checkForUpdates, isDesktopApp]);
+  }, [checkForUpdates, isDesktopApp, autoUpdate]);
 
   useEffect(() => {
-    if (!isDesktopApp || snapshot.status !== "pending") {
+    // Without auto-update the found update never downloads on its own, so the
+    // pending state has nothing to poll for — the callout is the reminder.
+    if (!isDesktopApp || !autoUpdate || snapshot.status !== "pending") {
       return undefined;
     }
 
@@ -101,16 +107,18 @@ export function useDesktopAppUpdater(): UseDesktopAppUpdaterReturn {
     return () => {
       clearInterval(intervalId);
     };
-  }, [checkForUpdates, isDesktopApp, snapshot.status]);
+  }, [autoUpdate, checkForUpdates, isDesktopApp, snapshot.status]);
 
   return {
     isDesktopApp,
+    autoUpdate,
     status: snapshot.status,
     statusText: formatStatusText({
       status: snapshot.status,
       availableUpdate: snapshot.availableUpdate,
       installMessage: snapshot.installMessage,
       lastCheckedAt: snapshot.lastCheckedAt,
+      autoUpdate,
       formatVersion: formatVersionWithPrefix,
       formatLastCheckedAt: (timestamp) => formatMessageTimestamp(new Date(timestamp)),
     }),

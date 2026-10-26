@@ -28,6 +28,7 @@ class FakeAppUpdateRuntime implements AppUpdateRuntime {
   } | null = null;
   checkCount = 0;
   downloadCallCount = 0;
+  lastConfiguredAutoDownload: boolean | null = null;
   requestedDownloadVersions: string[] = [];
   downloadedVersions: string[] = [];
   installedVersions: string[] = [];
@@ -36,6 +37,7 @@ class FakeAppUpdateRuntime implements AppUpdateRuntime {
   configure(input: AppUpdateRuntimeConfiguration): void {
     this.configuration = input;
     this.gate = input.shouldAdmitUpdate;
+    this.lastConfiguredAutoDownload = input.autoDownload;
   }
 
   nextCheck(result: { isUpdateAvailable: boolean; updateInfo: RuntimeUpdateInfo } | null): void {
@@ -260,6 +262,27 @@ describe("app update service", () => {
     });
   });
 
+  it("reports an available update without downloading when auto-download is off", async () => {
+    const { runtime, service } = createService({ bucket: async () => 0 });
+    runtime.nextCheck({ isUpdateAvailable: true, updateInfo: rolledOutUpdate });
+
+    const result = await service.checkForAppUpdate({
+      currentVersion: "1.2.3",
+      releaseChannel: "stable",
+      intent: "automatic",
+      autoDownload: false,
+    });
+
+    expect(runtime.lastConfiguredAutoDownload).toBe(false);
+    expect(result).toMatchObject({
+      hasUpdate: true,
+      readyToInstall: false,
+      latestVersion: "1.2.4",
+    });
+    expect(runtime.downloadCallCount).toBe(0);
+    expect(runtime.downloadedVersions).toEqual([]);
+  });
+
   it("clears a cached update when the manifest no longer contains it", async () => {
     const { runtime, service } = createService();
     runtime.nextCheck({ isUpdateAvailable: true, updateInfo: rolledOutUpdate });
@@ -385,6 +408,7 @@ describe("app update service", () => {
     const installed = await service.installUpdateOnQuit({
       currentVersion: "1.2.3",
       releaseChannel: "stable",
+      autoUpdate: true,
       signal: new AbortController().signal,
     });
 
@@ -393,6 +417,30 @@ describe("app update service", () => {
     expect(runtime.installModes).toEqual([
       { targetVersion: "1.2.5", isSilent: true, isForceRunAfter: false },
     ]);
+  });
+
+  it("does not install on quit when auto-update is disabled", async () => {
+    const { runtime, service } = createService({ bucket: async () => 0 });
+    runtime.nextCheck({ isUpdateAvailable: true, updateInfo: rolledOutUpdate });
+
+    await service.checkForAppUpdate({
+      currentVersion: "1.2.3",
+      releaseChannel: "stable",
+      intent: "automatic",
+    });
+    runtime.finishUpdateDownload(rolledOutUpdate);
+
+    runtime.nextCheck({ isUpdateAvailable: true, updateInfo: rolledOutUpdate });
+    const installed = await service.installUpdateOnQuit({
+      currentVersion: "1.2.3",
+      releaseChannel: "stable",
+      autoUpdate: false,
+      signal: new AbortController().signal,
+    });
+
+    expect(installed).toBe(false);
+    expect(runtime.installedVersions).toEqual([]);
+    expect(runtime.checkCount).toBe(1);
   });
 
   it("does not install an older download while its replacement is still rolling out", async () => {
@@ -420,6 +468,7 @@ describe("app update service", () => {
     const installed = await service.installUpdateOnQuit({
       currentVersion: "1.2.3",
       releaseChannel: "stable",
+      autoUpdate: true,
       signal: new AbortController().signal,
     });
 
@@ -447,6 +496,7 @@ describe("app update service", () => {
     const installed = await service.installUpdateOnQuit({
       currentVersion: "1.2.3",
       releaseChannel: "stable",
+      autoUpdate: true,
       signal: deadline.signal,
     });
 
@@ -469,6 +519,7 @@ describe("app update service", () => {
     const installed = await service.installUpdateOnQuit({
       currentVersion: "1.2.3",
       releaseChannel: "stable",
+      autoUpdate: true,
       signal: new AbortController().signal,
     });
 

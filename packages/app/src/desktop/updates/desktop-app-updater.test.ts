@@ -5,6 +5,7 @@ import {
   formatStatusText,
   type DesktopAppUpdater,
   type DesktopAppUpdaterErrorReport,
+  type DesktopAppUpdateStatus,
 } from "./desktop-app-updater";
 import {
   buildFakeCheckResult,
@@ -383,108 +384,116 @@ describe("formatStatusText", () => {
   const formatVersion = (version: string | null | undefined) =>
     version ? `v${version.replace(/^v/i, "")}` : "\u2014";
   const formatLastCheckedAt = (timestamp: number) => `time-${timestamp}`;
+  const statusInput = (
+    overrides: Partial<Omit<Parameters<typeof formatStatusText>[0], "status">> & {
+      status: DesktopAppUpdateStatus;
+    },
+  ) => ({
+    availableUpdate: null,
+    installMessage: null,
+    lastCheckedAt: null,
+    autoUpdate: true,
+    formatVersion,
+    formatLastCheckedAt,
+    ...overrides,
+  });
 
   it("shows when an up-to-date check completed", () => {
-    expect(
-      formatStatusText({
-        status: "up-to-date",
-        availableUpdate: null,
-        installMessage: null,
-        lastCheckedAt: 42,
-        formatVersion,
-        formatLastCheckedAt,
-      }),
-    ).toBe("Up to date. Last checked at time-42.");
+    expect(formatStatusText(statusInput({ status: "up-to-date", lastCheckedAt: 42 }))).toBe(
+      "Up to date. Last checked at time-42.",
+    );
   });
 
   it("uses the latest version in the 'available' message when present", () => {
     expect(
-      formatStatusText({
-        status: "available",
-        availableUpdate: buildFakeCheckResult({ latestVersion: "1.2.3" }),
-        installMessage: null,
-        lastCheckedAt: null,
-        formatVersion,
-        formatLastCheckedAt,
-      }),
+      formatStatusText(
+        statusInput({
+          status: "available",
+          availableUpdate: buildFakeCheckResult({ latestVersion: "1.2.3" }),
+        }),
+      ),
     ).toBe("Update ready: v1.2.3");
   });
 
   it("shows the found version while an update is pending", () => {
     expect(
-      formatStatusText({
-        status: "pending",
-        availableUpdate: buildFakeCheckResult({ latestVersion: "1.2.3" }),
-        installMessage: null,
-        lastCheckedAt: 42,
-        formatVersion,
-        formatLastCheckedAt,
-      }),
+      formatStatusText(
+        statusInput({
+          status: "pending",
+          availableUpdate: buildFakeCheckResult({ latestVersion: "1.2.3" }),
+          lastCheckedAt: 42,
+        }),
+      ),
     ).toBe("Update found: v1.2.3. Downloading... Last checked at time-42.");
+  });
+
+  it("shows notify-only copy for a found update when auto-update is off", () => {
+    expect(
+      formatStatusText(
+        statusInput({
+          status: "pending",
+          autoUpdate: false,
+          availableUpdate: buildFakeCheckResult({ latestVersion: "1.2.3" }),
+        }),
+      ),
+    ).toBe("Update found: v1.2.3. Automatic updates are off.");
+    expect(
+      formatStatusText(
+        statusInput({
+          status: "pending",
+          autoUpdate: false,
+          availableUpdate: buildFakeCheckResult({ latestVersion: "1.2.3" }),
+          lastCheckedAt: 42,
+        }),
+      ),
+    ).toBe("Update found: v1.2.3. Automatic updates are off. Last checked at time-42.");
   });
 
   it("keeps manual check feedback visible when an update is available", () => {
     expect(
-      formatStatusText({
-        status: "available",
-        availableUpdate: buildFakeCheckResult({ latestVersion: "1.2.3" }),
-        installMessage: null,
-        lastCheckedAt: 42,
-        formatVersion,
-        formatLastCheckedAt,
-      }),
+      formatStatusText(
+        statusInput({
+          status: "available",
+          availableUpdate: buildFakeCheckResult({ latestVersion: "1.2.3" }),
+          lastCheckedAt: 42,
+        }),
+      ),
     ).toBe("Update ready: v1.2.3. Last checked at time-42.");
   });
 
   it("falls back to a generic 'available' message when no version is reported", () => {
-    expect(
-      formatStatusText({
-        status: "available",
-        availableUpdate: null,
-        installMessage: null,
-        lastCheckedAt: null,
-        formatVersion,
-        formatLastCheckedAt,
-      }),
-    ).toBe("An app update is ready to install.");
+    expect(formatStatusText(statusInput({ status: "available" }))).toBe(
+      "An app update is ready to install.",
+    );
   });
 
   it("uses the install message in the 'installed' state when present", () => {
     expect(
-      formatStatusText({
-        status: "installed",
-        availableUpdate: null,
-        installMessage: "Restart now",
-        lastCheckedAt: null,
-        formatVersion,
-        formatLastCheckedAt,
-      }),
+      formatStatusText(statusInput({ status: "installed", installMessage: "Restart now" })),
     ).toBe("Restart now");
   });
 
   it("uses the active app language for local status wrappers", async () => {
     await i18n.changeLanguage("zh-CN");
     try {
+      expect(formatStatusText(statusInput({ status: "checking" }))).toBe("正在检查 app 更新...");
       expect(
-        formatStatusText({
-          status: "checking",
-          availableUpdate: null,
-          installMessage: null,
-          lastCheckedAt: null,
-          formatVersion,
-          formatLastCheckedAt,
-        }),
-      ).toBe("正在检查 app 更新...");
-      expect(
-        formatStatusText({
-          status: "available",
-          availableUpdate: buildFakeCheckResult({ latestVersion: "1.2.3" }),
-          installMessage: null,
-          lastCheckedAt: null,
-          formatVersion,
-          formatLastCheckedAt,
-        }),
+        formatStatusText(
+          statusInput({
+            status: "available",
+            availableUpdate: buildFakeCheckResult({ latestVersion: "1.2.3" }),
+          }),
+        ),
       ).toBe("更新已就绪：v1.2.3");
+      expect(
+        formatStatusText(
+          statusInput({
+            status: "pending",
+            autoUpdate: false,
+            availableUpdate: buildFakeCheckResult({ latestVersion: "1.2.3" }),
+          }),
+        ),
+      ).toBe("发现新版本：v1.2.3。自动更新已关闭。");
     } finally {
       await i18n.changeLanguage("en");
     }

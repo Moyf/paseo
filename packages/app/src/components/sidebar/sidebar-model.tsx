@@ -24,6 +24,8 @@ import {
   hasAuthoritativeWorkspaceLabelCatalog,
   useWorkspaceLabelProjection,
 } from "@/workspace-labels";
+import { useSidebarRevealStore } from "@/components/sidebar/sidebar-reveal-store";
+import { repairRevealVisibility } from "@/components/sidebar/sidebar-reveal-visibility";
 
 interface SidebarModel extends SidebarWorkspacesListResult {
   workspaceEntriesByKey: ReadonlyMap<string, SidebarWorkspaceEntry>;
@@ -57,6 +59,7 @@ export function SidebarModelProvider({
 }) {
   const { t } = useTranslation();
   const list = useSidebarWorkspacesList({ enabled: active });
+  const showBackground = useSidebarViewStore((state) => state.showBackground);
   const groupMode = useSidebarViewStore((state) => state.groupMode);
   const labelFilter = useSidebarViewStore((state) => state.labelFilter);
   const projectFilters = useSidebarViewStore((state) => state.projectFilters);
@@ -102,14 +105,51 @@ export function SidebarModelProvider({
     list.workspacePlacements,
     active !== false || needsWorkspaceEntries,
   );
+  // "Reveal in sidebar" can only scroll to a row the sidebar actually shows, so a request first
+  // clears the gates that hide its workspace — filters, collapsed sections, hidden background —
+  // each one only when it is the one hiding the target.
+  const revealRequest = useSidebarRevealStore((state) => state.request);
+  useEffect(() => {
+    if (!revealRequest) return;
+    const entry = workspaceEntriesByKey.get(revealRequest.workspaceKey);
+    if (!entry) return;
+    const view = useSidebarViewStore.getState();
+    const sections = useSidebarCollapsedSectionsStore.getState();
+    repairRevealVisibility({
+      entry,
+      filters: {
+        hostFilters: view.hostFilters,
+        resolvedProjectFilters,
+        labelFilter: view.labelFilter,
+        showBackground: view.showBackground,
+      },
+      collapsed: {
+        projectKeys: sections.collapsedProjectKeys,
+        workspaceGroupKeys: sections.collapsedWorkspaceGroupKeys,
+        pinned: sections.collapsedPinned,
+      },
+      actions: {
+        clearHostFilters: view.clearHostFilters,
+        clearProjectFilters: view.clearProjectFilters,
+        clearLabelFilter: view.clearLabelFilter,
+        showBackground: view.toggleBackground,
+        expandProject: (projectViewKey) => sections.setProjectCollapsed(projectViewKey, false),
+        expandWorkspaceGroup: (groupKey) => sections.toggleWorkspaceGroupCollapsed(groupKey),
+        expandPinned: () => sections.togglePinnedCollapsed(),
+      },
+    });
+  }, [revealRequest, resolvedProjectFilters, workspaceEntriesByKey]);
   const filteredWorkspaceEntriesByKey = useMemo(() => {
     const byProject = filterWorkspacesByProjects({
       workspaces: [...workspaceEntriesByKey.values()],
       projectFilters: resolvedProjectFilters,
     });
-    const filtered = filterWorkspacesByLabels({ workspaces: byProject, ...labelFilter });
+    const filtered = filterWorkspacesByLabels({
+      workspaces: byProject.filter((workspace) => showBackground || !workspace.background),
+      ...labelFilter,
+    });
     return new Map(filtered.map((workspace) => [workspace.workspaceKey, workspace]));
-  }, [labelFilter, resolvedProjectFilters, workspaceEntriesByKey]);
+  }, [showBackground, labelFilter, resolvedProjectFilters, workspaceEntriesByKey]);
   const visibleWorkspaceKeys = useMemo(
     () => new Set(filteredWorkspaceEntriesByKey.keys()),
     [filteredWorkspaceEntriesByKey],
@@ -124,16 +164,19 @@ export function SidebarModelProvider({
       const included = new Set(resolvedProjectFilters);
       projects = projects.filter((project) => included.has(project.viewKey));
     }
-    if (hasActiveLabelFilter) {
+    if (hasActiveLabelFilter || !showBackground) {
       projects = projects.flatMap((project) => {
         const workspaces = project.workspaces.filter((workspace) =>
           visibleWorkspaceKeys.has(workspace.workspaceKey),
         );
-        return workspaces.length > 0 ? [{ ...project, workspaces }] : [];
+        return workspaces.length > 0 || (!hasActiveLabelFilter && project.workspaces.length === 0)
+          ? [workspaces.length === project.workspaces.length ? project : { ...project, workspaces }]
+          : [];
       });
     }
     return projects;
   }, [
+    showBackground,
     hasActiveLabelFilter,
     hasActiveProjectFilter,
     resolvedProjectFilters,

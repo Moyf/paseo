@@ -1,4 +1,4 @@
-import type { GitAction, GitActions } from "@/git/policy";
+import { actionsWithoutPrimary, type GitAction, type GitActions } from "@/git/policy";
 import type { KeyboardActionDefinition } from "@/keyboard/keyboard-action-dispatcher";
 import type {
   WorkspacePanelPlacement,
@@ -56,6 +56,7 @@ export interface WorkspaceCommandCenterLabels {
   pin: string;
   unpin: string;
   showSetup: string;
+  revealInSidebar: string;
   labelsGroup: string;
 }
 
@@ -84,6 +85,7 @@ export interface WorkspaceCommandCenterIcons {
   pin?: CommandCenterIcon;
   unpin?: CommandCenterIcon;
   showSetup?: CommandCenterIcon;
+  revealInSidebar?: CommandCenterIcon;
   toggleFocusMode?: CommandCenterIcon;
   label?: CommandCenterIcon;
   git?(action: GitAction): CommandCenterIcon | undefined;
@@ -134,6 +136,8 @@ export interface WorkspaceCommandCenterSource {
   runGitAction(action: GitAction): void;
   copyPath(): void;
   copyBranchName(): void;
+  /** Null while the workspace identity is unresolved — the entry is omitted rather than failing. */
+  revealInSidebar: (() => void) | null;
   toggleLabel(name: string, assigned: boolean): void | Promise<void>;
 }
 
@@ -582,9 +586,7 @@ export function buildWorkspaceCommandCenterContributions(
     ...(source.capabilities.canSplitPanes ? buildPaneContributions(source) : []),
   ];
 
-  const primary = source.gitActions.primary;
-  for (const [index, action] of source.gitActions.secondary.entries()) {
-    if (action.id === primary?.id) continue;
+  for (const [index, action] of actionsWithoutPrimary(source.gitActions).entries()) {
     contributions.push(buildGitContribution(source, action, 100 + index, "query"));
   }
 
@@ -654,6 +656,21 @@ export function buildWorkspaceCommandCenterContributions(
         keywords: ["setup", "provision", "install", "bootstrap"],
         icon: source.icons.showSetup,
         action: { id: "workspace.setup.show", scope: "workspace" },
+        visibility: "query",
+      }),
+    );
+  }
+
+  if (source.revealInSidebar) {
+    contributions.push(
+      buildWorkspaceCallback({
+        source,
+        id: "workspace:reveal-in-sidebar",
+        rank: 27,
+        title: source.labels.revealInSidebar,
+        keywords: ["reveal", "sidebar", "locate", "scroll", "show", "list"],
+        icon: source.icons.revealInSidebar,
+        run: source.revealInSidebar,
         visibility: "query",
       }),
     );

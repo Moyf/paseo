@@ -2,6 +2,11 @@ import { defineConfig, configDefaults } from "vitest/config";
 import { playwright } from "@vitest/browser-playwright";
 import path from "path";
 import fs from "fs";
+import { transformSync } from "@babel/core";
+import { build } from "esbuild";
+
+// Set this before Vite resolves dependencies and Vitest starts its workers.
+Object.assign(process.env, { NODE_ENV: "test" });
 
 const appNodeModules = path.resolve(__dirname, "node_modules");
 const rootNodeModules = path.resolve(__dirname, "../../node_modules");
@@ -13,6 +18,43 @@ const resolvePackageEntry = (packageName: string) => {
 };
 
 export default defineConfig({
+  plugins: [
+    {
+      name: "compile-usage-components",
+      enforce: "pre",
+      transform(source, id) {
+        // These labels must react to time and language in the compiled app too.
+        if (!id.includes("/src/usage/") || !id.endsWith(".tsx") || id.includes(".test.")) return;
+        const result = transformSync(source, {
+          filename: id,
+          babelrc: false,
+          configFile: false,
+          parserOpts: { plugins: ["typescript", "jsx"] },
+          plugins: [["babel-plugin-react-compiler", { target: "19" }]],
+          sourceMaps: true,
+        });
+        if (result?.code) return { code: result.code, map: result.map };
+      },
+    },
+    {
+      name: "bundle-i18n-resources",
+      // Metro resolves literal requires lazily. Vite's TS transform leaves them
+      // to Node, which cannot resolve the resource modules. Bundle this boundary
+      // so unit and browser consumers exercise the same deferred module loading.
+      async transform(_source, id) {
+        if (path.resolve(id) !== path.resolve(__dirname, "src/i18n/i18next.ts")) return;
+        const result = await build({
+          entryPoints: [id],
+          bundle: true,
+          format: "esm",
+          platform: "neutral",
+          external: ["i18next", "react-i18next"],
+          write: false,
+        });
+        return { code: result.outputFiles[0].text, map: null };
+      },
+    },
+  ],
   test: {
     environment: "node",
     exclude: [...configDefaults.exclude, "e2e/**"],
@@ -22,7 +64,12 @@ export default defineConfig({
         test: {
           name: "unit",
           environment: "node",
-          include: ["src/**/*.{test,spec}.{ts,tsx}", "native-release-version.test.ts"],
+          include: [
+            "src/**/*.{test,spec}.{ts,tsx}",
+            "native-release-version.test.ts",
+            "app.config.test.ts",
+            "vitest-environment.test.ts",
+          ],
           setupFiles: [path.resolve(__dirname, "vitest.setup.ts")],
           exclude: [...configDefaults.exclude, "e2e/**", "src/**/*.browser.{test,spec}.{ts,tsx}"],
         },
@@ -61,9 +108,12 @@ export default defineConfig({
       deps: {
         fallbackCJS: true,
         inline: [
+          "react-native-enriched-markdown",
           "zustand",
           "@tanstack/react-query",
           "react-native-web",
+          "react-native-reanimated",
+          "react-native-worklets",
           "react-native-gesture-handler",
           "react-native-keyboard-controller",
         ],
@@ -75,9 +125,36 @@ export default defineConfig({
   // so it scans the native files and dies on imports react-native-web has no answer for.
   // Unbundled, the same imports go through the resolver below and land on the web files.
   optimizeDeps: {
+    // Expo's public navigation barrel also loads screens. Match Metro's web-first resolution
+    // while optimizing its CJS dependencies, including DebugContainer.web.js.
+    esbuildOptions: {
+      resolveExtensions: [
+        ".web.js",
+        ".web.jsx",
+        ".web.ts",
+        ".web.tsx",
+        ".js",
+        ".jsx",
+        ".ts",
+        ".tsx",
+        ".json",
+      ],
+    },
     // Bundle the CJS dependencies of the excluded gesture-handler package for the browser.
+    // jsx-dev-runtime: the browser project's automatic JSX transform imports it in dev mode,
+    // and discovering it mid-run makes Vite re-optimize and reload, which kills the import
+    // of whatever test file is in flight.
     include: [
       "react/jsx-runtime",
+      "react/jsx-dev-runtime",
+      "react/compiler-runtime",
+      "expo-router/react-navigation",
+      "@testing-library/react",
+      "@tanstack/react-query",
+      "react-i18next",
+      "i18next",
+      "@marijn/find-cluster-break",
+      "tiny-invariant",
       "react-native-gesture-handler > hoist-non-react-statics",
       "react-native-gesture-handler > invariant",
     ],
@@ -143,12 +220,56 @@ export default defineConfig({
         find: /^react-native\/Libraries\/Renderer\/shims\/ReactFabric$/,
         replacement: path.resolve(__dirname, "test-stubs/react-native-fabric-shim.ts"),
       },
+      // react-native-gesture-handler's lib/module deep-imports react-native/Libraries paths,
+      // which bypass the `react-native` alias above and cannot bundle in the browser build.
+      // Browser tests that mount sidebar rows pull its module graph in.
+      {
+        find: /^react-native\/Libraries\/Utilities\/codegenNativeComponent$/,
+        replacement: path.resolve(__dirname, "test-stubs/react-native-codegen-native-component.ts"),
+      },
+      {
+        find: /^react-native\/Libraries\/Renderer\/shims\/ReactNative$/,
+        replacement: path.resolve(__dirname, "test-stubs/react-native-renderer-shim.ts"),
+      },
+      {
+        find: /^react-native\/Libraries\/Renderer\/shims\/ReactNativeViewConfigRegistry$/,
+        replacement: path.resolve(__dirname, "test-stubs/react-native-view-config-registry.ts"),
+      },
+      {
+        find: /^react-native\/Libraries\/Utilities\/getShadowNodeFromRef$/,
+        replacement: path.resolve(__dirname, "test-stubs/react-native-get-shadow-node-from-ref.ts"),
+      },
+      // expo-router's build ships uncompiled JSX in .js files, which the browser build cannot
+      // parse. The sidebar module graph only needs its hooks to exist and the router to no-op.
+      {
+        find: /^expo-router$/,
+        replacement: path.resolve(__dirname, "test-stubs/expo-router.ts"),
+      },
+      // Same class of problem: expo-clipboard's ClipboardPasteButton ships JSX in .js. Sidebar
+      // clipboard actions only ever write strings.
+      {
+        find: /^expo-clipboard$/,
+        replacement: path.resolve(__dirname, "test-stubs/expo-clipboard.ts"),
+      },
+      // expo-haptics pulls expo-modules-core, whose TurboModuleRegistry import has no
+      // react-native-web answer. Haptics never fire under test.
+      {
+        find: /^expo-haptics$/,
+        replacement: path.resolve(__dirname, "test-stubs/expo-haptics.ts"),
+      },
+      // Several expo packages reach expo-modules-core through their own imports; stub the core
+      // itself so the whole family bundles. Tests never touch a native module.
+      {
+        find: /^expo-modules-core$/,
+        replacement: path.resolve(__dirname, "test-stubs/expo-modules-core.ts"),
+      },
       // Point to the ESM build so Vite can transform its imports and apply the
       // react alias below (the CJS build uses require('react') which bypasses
-      // Vite alias resolution).
+      // Vite alias resolution). The wrapper re-exports react-native-web and adds
+      // the native-only exports some app modules import (ToastAndroid).
       {
         find: "react-native",
-        replacement: path.resolve(rootNodeModules, "react-native-web/dist/index.js"),
+        replacement: path.resolve(__dirname, "test-stubs/react-native.ts"),
       },
       { find: "react", replacement: resolvePackageEntry("react") },
       {
@@ -198,6 +319,10 @@ export default defineConfig({
       {
         find: /^lucide-react-native$/,
         replacement: path.resolve(__dirname, "test-stubs/lucide-react-native.ts"),
+      },
+      {
+        find: /^expo-clipboard$/,
+        replacement: path.resolve(__dirname, "test-stubs/expo-clipboard.ts"),
       },
     ],
   },

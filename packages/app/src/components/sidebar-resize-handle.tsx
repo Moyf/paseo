@@ -8,7 +8,7 @@ import {
 } from "@/components/sidebar-resize-handle-layout";
 import { isWeb } from "@/constants/platform";
 import { useHasFinePointer } from "@/hooks/use-fine-pointer";
-import { NO_DRAG_SCOPE_ATTRIBUTE } from "@/components/desktop/titlebar-drag-region";
+import { NO_DRAG_SCOPE_DATA_SET } from "@/components/desktop/titlebar-drag-region";
 
 interface SidebarResizeHandleProps {
   edge: SidebarResizeEdge;
@@ -74,10 +74,12 @@ function PointerResizeHandle({ edge, gesture, testID }: SidebarResizeHandleProps
     <GestureDetector gesture={gesture}>
       <Pressable
         testID={testID}
+        role="separator"
+        aria-orientation="vertical"
         style={hitAreaStyle}
         onHoverIn={handleHoverIn}
         onHoverOut={handleHoverOut}
-        {...{ [NO_DRAG_SCOPE_ATTRIBUTE]: "true" }}
+        dataSet={NO_DRAG_SCOPE_DATA_SET}
       >
         {highlighted ? (
           <View pointerEvents="none" testID={`${testID}-highlight`} style={styles.highlight} />
@@ -107,7 +109,7 @@ function TouchResizeHandle({ edge, gesture, pressed, testID }: SidebarResizeHand
   ];
 
   return (
-    <View pointerEvents="box-none" style={layerStyle} {...{ [NO_DRAG_SCOPE_ATTRIBUTE]: "true" }}>
+    <View pointerEvents="box-none" style={layerStyle} dataSet={NO_DRAG_SCOPE_DATA_SET}>
       <GestureDetector gesture={gesture}>
         <View
           testID={testID}

@@ -11,9 +11,9 @@ import type { WorkspaceServiceSummary } from "./service-summary";
  * running, and what someone filed it under. Identity first, then the work, then the work's
  * state, then the labels a person put on it.
  *
- * Labels are one item rather than one per label: they are drawn as a run of chips with a single
- * separator in front of them, so the line reads as four peers however many labels a workspace
- * carries.
+ * Labels are one item rather than one per label: they are drawn as a single run of chips on
+ * their own line beneath these, so the state line reads as four peers however many labels a
+ * workspace carries.
  */
 export type MetaRowItem =
   | { kind: "branch"; name: string }

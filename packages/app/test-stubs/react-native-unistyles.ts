@@ -1,6 +1,9 @@
+import { lightHighlightColors } from "@getpaseo/highlight";
+
 const testTheme = {
   colorScheme: "light",
   colors: {
+    syntax: lightHighlightColors,
     foreground: "#111111",
     foregroundMuted: "#666666",
     statusSuccess: "#15803d",
@@ -102,4 +105,5 @@ export const useUnistyles = () => ({
 export const UnistylesRuntime = {
   setTheme: () => undefined,
   themeName: "light",
+  breakpoint: undefined as string | undefined,
 };

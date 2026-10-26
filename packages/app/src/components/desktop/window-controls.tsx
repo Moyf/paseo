@@ -13,7 +13,7 @@ import {
   type DesktopWindowControlsPresentation,
 } from "@/desktop/window-chrome-presentation";
 import { useCustomDesktopWindowControls } from "@/utils/desktop-window";
-import { NO_DRAG_SCOPE_ATTRIBUTE } from "@/components/desktop/titlebar-drag-region";
+import { NO_DRAG_SCOPE_DATA_SET } from "@/components/desktop/titlebar-drag-region";
 import type { Theme } from "@/styles/theme";
 
 type WindowControlKind = "minimize" | "maximize" | "restore" | "close";
@@ -146,7 +146,7 @@ export function DesktopWindowControls() {
     <View
       style={[styles.controls, { height: presentation.controlHeight }]}
       testID="desktop-window-controls"
-      {...{ [NO_DRAG_SCOPE_ATTRIBUTE]: "true" }}
+      dataSet={NO_DRAG_SCOPE_DATA_SET}
     >
       <WindowControl
         kind="minimize"
