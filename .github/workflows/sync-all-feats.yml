@@ -1,6 +1,9 @@
 name: Sync all-feats
 
-# Daily: merge upstream main into local/all-feats, push to fork, trigger build.
+# Daily: merge the newest upstream STABLE release tag (vX.Y.Z, no prerelease
+# suffix) into local/all-feats, push to fork, trigger build.
+# Upstream beta/main-tip commits are intentionally ignored — builds must
+# contain exactly one clean release plus fork features.
 # On conflict: open an issue once and fail loudly instead of force-merging.
 
 on:
@@ -34,25 +37,35 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-      - name: Fetch upstream
+      - name: Find newest upstream stable tag
+        id: tag
         run: |
           git remote add upstream https://github.com/getpaseo/paseo.git
-          git fetch upstream main
+          git fetch upstream --tags --force
+          # Prereleases (v0.14.0-beta.1) and fork build tags (v0.13.0-af.*) all
+          # contain a dash; a stable release never does.
+          latest=$(git tag -l 'v*' | grep -vE -- '-' | sort -V | tail -1)
+          if [[ -z "$latest" ]]; then
+            echo "No stable tags found upstream."
+            exit 1
+          fi
+          echo "tag=$latest" >> "$GITHUB_OUTPUT"
+          echo "Newest upstream stable tag: $latest"
 
-      - name: Skip if upstream already merged
+      - name: Skip if tag already merged
         id: check
         run: |
-          if git merge-base --is-ancestor upstream/main HEAD; then
+          if git merge-base --is-ancestor "${{ steps.tag.outputs.tag }}" HEAD; then
             echo "changed=false" >> "$GITHUB_OUTPUT"
-            echo "No new upstream commits."
+            echo "${{ steps.tag.outputs.tag }} is already merged."
           else
             echo "changed=true" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Merge upstream main
+      - name: Merge stable tag
         id: merge
         if: steps.check.outputs.changed == 'true'
-        run: git merge upstream/main --no-edit
+        run: git merge "${{ steps.tag.outputs.tag }}" --no-edit
 
       - name: Open issue on conflict
         if: failure() && steps.merge.outcome == 'failure'
@@ -68,8 +81,8 @@ jobs:
           if [[ "$open_issues" == "0" ]]; then
             gh issue create \
               --repo "${{ github.repository }}" \
-              --title "Sync conflict: upstream main no longer merges cleanly" \
-              --body "Daily sync of getpaseo/paseo \`main\` into \`local/all-feats\` hit merge conflicts. Resolve locally, push, and the next run builds. Failing run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+              --title "Sync conflict: upstream stable tag no longer merges cleanly" \
+              --body "Daily sync of getpaseo/paseo stable tag \`${{ steps.tag.outputs.tag }}\` into \`local/all-feats\` hit merge conflicts. Resolve locally, push, and the next run builds. Failing run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           fi
           exit 1
 
