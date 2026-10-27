@@ -2030,11 +2030,11 @@ export function splitWorkspaceRootRightInLayout(
 }
 
 /**
- * The bottom dock opens at a quarter of the column, and is capped at a fixed pixel
- * height at render time — a fraction alone would grow with tall windows.
+ * The bottom dock opens at a fixed pixel height (never more than the default fraction),
+ * seeded at render time; the user's own resizes win afterwards without a ceiling.
  */
 export const BOTTOM_DOCK_DEFAULT_SIZE = 0.25;
-export const BOTTOM_DOCK_MAX_HEIGHT_PX = 200;
+export const BOTTOM_DOCK_DEFAULT_HEIGHT_PX = 280;
 
 /** Creates a full-width ordinary pane below the complete workspace split tree. */
 export function splitWorkspaceRootBottomInLayout(

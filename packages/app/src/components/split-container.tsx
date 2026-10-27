@@ -46,7 +46,7 @@ import {
 } from "@/screens/workspace/workspace-desktop-tabs-row";
 import type { WorkspaceTabDescriptor } from "@/screens/workspace/workspace-tabs-types";
 import {
-  BOTTOM_DOCK_MAX_HEIGHT_PX,
+  BOTTOM_DOCK_DEFAULT_HEIGHT_PX,
   clampChildFractionInSizes,
   collectAllPanes,
   createDefaultLayout,
@@ -435,13 +435,14 @@ function SplitNodeView({
           (child) => child.kind === "pane" && child.pane.id === bottomPaneId,
         )
       : -1;
-  // A fraction cap would grow with tall windows, so the dock's ceiling is measured in
-  // pixels against this group's rendered size and applied to display, preview, and commit
-  // alike. Vertical groups only: splitting the dock left or right puts it in a horizontal
-  // group whose width must stay uncapped.
+  // The dock's pixel height is a seed, not a ceiling: it caps the untouched default so a
+  // fraction cannot grow with tall windows, but the user's own resizes win afterwards -
+  // free to drag taller, bounded only by the sibling panes' minimums at commit. Vertical
+  // groups only: splitting the dock left or right puts it in a horizontal group whose
+  // width must stay untouched.
   const maxDockFraction =
     dockChildIndex >= 0 && groupDirection === "vertical" && groupContainerSize > 0
-      ? BOTTOM_DOCK_MAX_HEIGHT_PX / groupContainerSize
+      ? BOTTOM_DOCK_DEFAULT_HEIGHT_PX / groupContainerSize
       : null;
   const clampDockSizes = useCallback(
     (sizes: number[]) =>
@@ -455,8 +456,9 @@ function SplitNodeView({
     [dockChildIndex, maxDockFraction],
   );
   const effectiveGroupSizes = useMemo(
-    () => clampDockSizes(groupSizes),
-    [clampDockSizes, groupSizes],
+    // Stored sizes mean the user has resized this group; their sizes are law.
+    () => (storedGroupSizes ? groupSizes : clampDockSizes(groupSizes)),
+    [clampDockSizes, groupSizes, storedGroupSizes],
   );
   const visibleFlex = useMemo(
     () => resolveVisibleGroupFlex(groupChildren, effectiveGroupSizes, maximizedPaneId),
@@ -468,22 +470,18 @@ function SplitNodeView({
   }, [resizeFlex, visibleFlex]);
   const previewResizeSplit = useCallback(
     (_groupId: string, sizes: number[]) => {
-      resizeFlex.value = resolveVisibleGroupFlex(
-        groupChildren,
-        clampDockSizes(sizes),
-        maximizedPaneId,
-      );
+      resizeFlex.value = resolveVisibleGroupFlex(groupChildren, sizes, maximizedPaneId);
     },
-    [clampDockSizes, groupChildren, maximizedPaneId, resizeFlex],
+    [groupChildren, maximizedPaneId, resizeFlex],
   );
   const handleResizeSplit = useCallback(
     (_groupId: string, sizes: number[]) => {
       if (!groupId) {
         return;
       }
-      onResizeSplit(groupId, clampDockSizes(sizes));
+      onResizeSplit(groupId, sizes);
     },
-    [clampDockSizes, groupId, onResizeSplit],
+    [groupId, onResizeSplit],
   );
   const handleGroupLayout = useCallback(
     (event: LayoutChangeEvent) => {

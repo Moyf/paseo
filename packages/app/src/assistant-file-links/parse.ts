@@ -279,7 +279,10 @@ export function classifyAssistantFileLink(
     return null;
   }
 
-  if (!options.explicitLink && isAmbiguousWorkspaceCandidate(trimmed, target, options)) {
+  if (
+    (!options.explicitLink && isAmbiguousWorkspaceCandidate(trimmed, target, options)) ||
+    isWorkspaceFolderNamePrefixedCandidate(trimmed, target, options)
+  ) {
     return {
       kind: "ambiguousFileCandidate",
       target,
@@ -620,16 +623,37 @@ function isAmbiguousWorkspaceCandidate(
     return true;
   }
 
-  // Agents often prefix workspace-relative paths with the workspace folder's own name
-  // ("myapp/src/main.ts" while working inside "myapp"). A real subfolder can carry that
-  // name too, so hand the decision to the daemon's suffix search instead of guessing
-  // which file exists.
-  const trimmedRoot = normalizedWorkspaceRoot.replace(/\/+$/, "");
+  return isWorkspaceFolderNamePrefixedPath(parsed.path, normalizedWorkspaceRoot);
+}
+
+// Agents often prefix workspace-relative paths with the workspace folder's own name
+// ("myapp/src/main.ts" while working inside "myapp"). A real subfolder can carry that
+// name too, so hand the decision to the daemon's suffix search instead of guessing
+// which file exists. This holds even for authored links, so it is checked outside
+// the explicitLink gate.
+function isWorkspaceFolderNamePrefixedCandidate(
+  value: string,
+  target: InlinePathTarget,
+  options: AssistantHrefParseOptions = {},
+): boolean {
+  const normalizedWorkspaceRoot = normalizePathInput(options.workspaceRoot);
+  if (!normalizedWorkspaceRoot || !isAllowedAbsolutePath(target.path, normalizedWorkspaceRoot)) {
+    return false;
+  }
+  const parsed = parseLocalPathParts(value, options);
+  if (!parsed || isAbsolutePath(parsed.path) || !parsed.path.includes("/")) {
+    return false;
+  }
+  return isWorkspaceFolderNamePrefixedPath(parsed.path, normalizedWorkspaceRoot);
+}
+
+function isWorkspaceFolderNamePrefixedPath(path: string, workspaceRoot: string): boolean {
+  const trimmedRoot = workspaceRoot.replace(/\/+$/, "");
   const rootFolderName = trimmedRoot === "/" ? null : (trimmedRoot.split("/").pop() ?? null);
   if (!rootFolderName) {
     return false;
   }
-  const firstSegment = parsed.path.split("/")[0];
+  const firstSegment = path.split("/")[0];
   return !!firstSegment && firstSegment.toLowerCase() === rootFolderName.toLowerCase();
 }
 
