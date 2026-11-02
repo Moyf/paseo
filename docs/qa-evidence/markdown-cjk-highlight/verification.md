@@ -23,6 +23,7 @@ The screenshots and E2E cover the two reported strings, adjacent prose, semantic
 
 ## Checks and limits
 
+- The first CI run failed 15 jobs. In `app-tests`, 68 suites could not import the rebuilt WASM because Vite's CommonJS-to-ESM adapter matched only the old single-quoted trailer. This was introduced by this PR, despite the direct parser tests passing. The adapter now accepts either quote style. `vitest-environment.test.ts` reproduces the old failure through the shipped `lib/module` import and passes after the fix (4 tests passed). CI must be rerun before claiming the regression is resolved there.
 - `npm run build:app-deps` passed.
 - `npm run format` and targeted `npm run lint -- <changed TS files>` passed.
 - `npm run typecheck` passed before Expo generated `.expo/types/router.d.ts`. After browser E2E, the same command reports the existing `src/navigation/settings-navigation.ts:64` string-to-Href error. That source file is identical to HEAD; no routing changes are included. The pre-commit typecheck job is excluded for this draft because the known failure is recorded, not fixed by this PR.
