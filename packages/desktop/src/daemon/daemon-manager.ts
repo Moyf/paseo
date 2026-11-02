@@ -263,11 +263,25 @@ function normalizeVersion(version: string | null): string | null {
   return trimmed.replace(/^v/i, "");
 }
 
+/**
+ * Compares the two versions at the stable semver base, so a fork/prerelease
+ * suffix on either side ("-af.20261102.9f5fbac", "-beta.1") does not read as a
+ * daemon mismatch: the desktop would then restart the daemon on every renderer
+ * mount, killing in-flight agent creation.
+ */
+export function desktopVersionsDiffer(
+  appVersion: string | null,
+  daemonVersion: string | null,
+): boolean {
+  const appBase = /^\d+\.\d+\.\d+/.exec(normalizeVersion(appVersion) ?? "")?.[0] ?? null;
+  const daemonBase = /^\d+\.\d+\.\d+/.exec(normalizeVersion(daemonVersion) ?? "")?.[0] ?? null;
+  if (appBase && daemonBase) return appBase !== daemonBase;
+  return Boolean(appVersion && daemonVersion && appVersion !== daemonVersion);
+}
+
 function shouldRestartForVersion(current: DesktopDaemonStatus): boolean {
   if (!current.ownedByDesktop) return false;
-  const appVersion = normalizeVersion(resolveDesktopAppVersion());
-  const daemonVersion = normalizeVersion(current.version);
-  return Boolean(appVersion && daemonVersion && appVersion !== daemonVersion);
+  return desktopVersionsDiffer(resolveDesktopAppVersion(), current.version);
 }
 
 function assertBuiltInDaemonManagementEnabled(settings: DesktopSettings): void {

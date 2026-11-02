@@ -1,8 +1,13 @@
 name: Build all-feats desktop
 
 # Builds the desktop app from local/all-feats and publishes artifacts to this
-# fork's Releases. Version: <upstream version>-af.<yyyymmdd>.<shortsha>, e.g.
-# 0.11.1-af.20261008.40fae44. Triggered by sync-all-feats.yml, or manually.
+# fork's Releases. The packaged app version stays at the upstream stable base
+# (e.g. 0.14.0) so the desktop app and its bundled daemon always report the
+# same version — a mismatch makes the desktop restart the daemon on every
+# renderer mount. Fork build identity lives in the release tag
+# v<upstream version>-af.<yyyymmdd>.<shortsha> (e.g. v0.14.0-af.20261008.40fae44)
+# and in the fork build meta the About page renders. Triggered by
+# sync-all-feats.yml, or manually.
 
 on:
   # Any push to local/all-feats builds automatically (merge a feature branch
@@ -35,6 +40,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.version.outputs.version }}
+      base: ${{ steps.version.outputs.base }}
     steps:
       - uses: actions/checkout@v5
         with:
@@ -61,7 +67,8 @@ jobs:
           sha=$(git rev-parse --short HEAD)
           version="${base}-af.${date}.${sha}"
           echo "version=$version" >> "$GITHUB_OUTPUT"
-          echo "Building version $version"
+          echo "base=$base" >> "$GITHUB_OUTPUT"
+          echo "Building tag v$version (app version $base)"
 
   create-release:
     runs-on: ubuntu-latest
@@ -132,12 +139,14 @@ jobs:
 
       - name: Stamp version
         shell: bash
+        env:
+          BASE_VERSION: ${{ needs.version.outputs.base }}
         run: |
           node -e "
             const fs = require('node:fs');
             const p = process.env.DESKTOP_PACKAGE_PATH + '/package.json';
             const pkg = JSON.parse(fs.readFileSync(p, 'utf8'));
-            pkg.version = process.env.VERSION;
+            pkg.version = process.env.BASE_VERSION;
             fs.writeFileSync(p, JSON.stringify(pkg, null, 2) + '\n');
           "
 
@@ -217,8 +226,10 @@ jobs:
           fetch-depth: 1
 
       - name: Verify installers and publish
+        env:
+          BASE_VERSION: ${{ needs.version.outputs.base }}
         run: |
           manifest="$RUNNER_TEMP/fork-release-assets.json"
           gh release view "v${VERSION}" --repo "${{ github.repository }}" --json assets > "$manifest"
-          node scripts/verify-fork-release-assets.mjs "$VERSION" "$manifest"
+          node scripts/verify-fork-release-assets.mjs "$BASE_VERSION" "$manifest"
           gh release edit "v${VERSION}" --repo "${{ github.repository }}" --draft=false
