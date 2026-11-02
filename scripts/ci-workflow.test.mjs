@@ -1,12 +1,14 @@
 import assert from "node:assert/strict";
 import { readFileSync, readdirSync, mkdtempSync, writeFileSync, rmSync } from "node:fs";
-import { spawnSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { relative as relativePath } from "node:path";
 import { fileURLToPath } from "node:url";
 import test from "node:test";
 import { runInNewContext } from "node:vm";
+import { checkForkRelease } from "./check-fork-release.mjs";
+import { verifyForkReleaseAssets } from "./verify-fork-release-assets.mjs";
 
 const repoRoot = new URL("../", import.meta.url);
 const ciWorkflowPath = new URL(".github/workflows/ci.yml", repoRoot);
@@ -353,6 +355,95 @@ test("workspace installs use pinned pnpm and frozen locks", () => {
     assert.match(workflow, /pnpm install --frozen-lockfile/, file);
     assert.doesNotMatch(workflow, /npm-retry\.mjs ci/, file);
   }
+});
+
+test("Moy releases use one immutable source and publish only after both builds", () => {
+  const source = readFileSync(new URL(".github/workflows/build-all-feats.yml", repoRoot), "utf8");
+  const jobs = jobBlocks(source);
+  assert.doesNotMatch(source, /ref: local\/all-feats/);
+  assert.match(source, /ref: \$\{\{ github\.sha \}\}/);
+  assert.match(jobs.get("version").join("\n"), /scripts\/check-fork-release\.mjs/);
+  assert.match(jobs.get("create-release").join("\n"), /--draft/);
+  assert.match(jobs.get("create-release").join("\n"), /--notes-file/);
+  const publish = jobs.get("publish-release");
+  assert.ok(publish, "a completed-build publication job is required");
+  assert.match(publish.join("\n"), /needs: \[version, build\]/);
+  assert.match(publish.join("\n"), /scripts\/verify-fork-release-assets\.mjs/);
+  assert.match(publish.join("\n"), /--draft=false/);
+  assert.match(source, /cancel-in-progress: false/);
+});
+
+test("Moy sync fetches a published upstream stable release and checks the baseline", () => {
+  const source = readFileSync(new URL(".github/workflows/sync-all-feats.yml", repoRoot), "utf8");
+  assert.match(source, /gh release view --repo getpaseo\/paseo --json tagName/);
+  assert.doesNotMatch(source, /git tag -l|git fetch upstream --tags --force/);
+  assert.match(source, /scripts\/check-fork-release\.mjs/);
+});
+
+test("Moy baseline accepts fork features but refuses unreleased upstream commits", () => {
+  const directory = mkdtempSync(join(tmpdir(), "paseo-fork-baseline-"));
+  function git(...args) {
+    return execFileSync("git", args, { cwd: directory, encoding: "utf8" }).trim();
+  }
+  try {
+    git("init", "--initial-branch=main");
+    git("config", "user.name", "Test maintainer");
+    git("config", "user.email", "test@example.com");
+    writeFileSync(join(directory, "package.json"), JSON.stringify({ version: "0.14.0" }));
+    git("add", "package.json");
+    git("commit", "-m", "Stable baseline");
+    git("tag", "v0.14.0");
+    writeFileSync(join(directory, "upstream.txt"), "unreleased\n");
+    git("add", "upstream.txt");
+    git("commit", "-m", "Unreleased upstream feature");
+    git("switch", "-c", "fork", "v0.14.0");
+    writeFileSync(join(directory, "fork.txt"), "Moy feature\n");
+    git("add", "fork.txt");
+    git("commit", "-m", "Fork feature");
+    const input = { cwd: directory, upstreamMainRef: "main", stableRef: "v0.14.0" };
+    assert.equal(checkForkRelease(input), "0.14.0");
+    git("merge", "main", "--no-edit");
+    assert.throws(() => checkForkRelease(input), /Unreleased upstream feature/);
+    writeFileSync(join(directory, "package.json"), JSON.stringify({ version: "0.15.0-beta.1" }));
+    assert.throws(() => checkForkRelease(input), /requires a stable base version/);
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
+});
+
+test("Moy publication requires all four uploaded nonempty installers", () => {
+  const version = "0.14.0-af.20261102.abc1234";
+  const assets = [
+    { name: `Paseo-Setup-${version}-windows-x64.exe`, size: 200, state: "uploaded" },
+    { name: `Paseo-${version}-windows-x64.zip`, size: 200, state: "uploaded" },
+    { name: `Paseo-${version}-macos-arm64.dmg`, size: 200, state: "uploaded" },
+    { name: `Paseo-${version}-macos-arm64.zip`, size: 200, state: "uploaded" },
+  ];
+  assert.doesNotThrow(() => verifyForkReleaseAssets({ version, assets }));
+  assert.throws(
+    () => verifyForkReleaseAssets({ version, assets: [] }),
+    /missing completed installers/,
+  );
+  assert.throws(
+    () => verifyForkReleaseAssets({ version, assets: assets.slice(1) }),
+    /windows-x64.exe/,
+  );
+  assert.throws(
+    () =>
+      verifyForkReleaseAssets({
+        version,
+        assets: assets.map((asset) => ({ name: asset.name, state: asset.state, size: 0 })),
+      }),
+    /missing completed installers/,
+  );
+  assert.throws(
+    () =>
+      verifyForkReleaseAssets({
+        version,
+        assets: assets.map((asset) => ({ name: asset.name, size: asset.size, state: "new" })),
+      }),
+    /missing completed installers/,
+  );
 });
 
 test("pnpm installs preserve the npm dependency overrides and patches", () => {

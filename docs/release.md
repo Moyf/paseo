@@ -49,6 +49,35 @@ commit.
 
 ## Release branch discipline
 
+### Moy stable builds
+
+`local/all-feats` ships Moy features on an upstream stable release tag. Start
+feature branches from `origin/local/all-feats`; update them from that branch,
+not `upstream/main`. Only the stable-tag sync brings upstream changes into the
+release branch. Keep main-tip and beta experiments on separate branches. Bring
+only reviewed fork commits back from experiments; do not merge their upstream
+history.
+
+The sync resolves the published upstream stable release directly from GitHub.
+The build checks that its base tag is an ancestor and refuses commits from
+upstream main that are not in that tag. This guard does not recognize copied or
+squashed upstream changes; review those before merging.
+
+Enable `git config rerere.enabled true` and `git config rerere.autoupdate false`
+in the checkout to reuse earlier conflict resolutions without staging them
+automatically. Review the replayed diff and run checks before committing.
+
+Moy desktop builds create a draft Release, build one fixed commit on Windows and
+macOS, and upload the EXE, Windows ZIP, DMG and macOS ZIP. The Release becomes
+public only after all four uploads are verified. Failed builds remain drafts;
+retry the failed jobs instead of publishing an empty Release or bumping versions.
+
+The scheduled workflow definition comes from the fork's default `main` branch.
+Keep `sync-all-feats.yml` there aligned with the release branch; its checkout
+still targets `local/all-feats`.
+
+### Upstream release branches
+
 While you finalize a release on `main`, use a temporary `next` branch for work intended for the following
 release. This applies to both beta and stable releases.
 

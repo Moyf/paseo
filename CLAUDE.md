@@ -128,6 +128,10 @@ codesign --force --deep --sign - /Applications/Paseo.app
 
 ## Release branches
 
+Moy feature branches start from `origin/local/all-feats` and update from that
+branch. Do not merge `upstream/main` or beta history into them or into the Moy
+release branch. Follow [Moy stable builds](docs/release.md#moy-stable-builds).
+
 When the user says "this goes to next", create or
 retarget the PR to `next` and preserve that destination through delivery. Follow
 [release branch discipline](docs/release.md#release-branch-discipline) for creating
