@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
+import { createRequire } from "node:module";
 import path from "node:path";
 import { test } from "node:test";
 
@@ -9,10 +10,13 @@ const script = path.resolve("scripts", "postinstall-patches.mjs");
 const bin = path.resolve("node_modules", ".bin");
 const packageName = "react-native-draggable-flatlist";
 const patchFile = `${packageName}+4.0.3.patch`;
+const appRequire = createRequire(path.resolve("packages/app/package.json"));
 
 for (const platform of ["ios", "android"]) {
   test(`patched Markdown ships ${platform} props generated from its native specs`, () => {
-    const packageDir = path.resolve("packages/app/node_modules/react-native-enriched-markdown");
+    const packageDir = path.dirname(
+      appRequire.resolve("react-native-enriched-markdown/package.json"),
+    );
     const output = mkdtempSync(path.join(tmpdir(), `markdown-${platform}-codegen-`));
     try {
       // includesGeneratedCode makes native builds use the shipped headers instead of
@@ -20,7 +24,7 @@ for (const platform of ["ios", "android"]) {
       const result = spawnSync(
         process.execPath,
         [
-          path.resolve("node_modules/react-native/scripts/generate-codegen-artifacts.js"),
+          appRequire.resolve("react-native/scripts/generate-codegen-artifacts.js"),
           "-p",
           packageDir,
           "-t",
