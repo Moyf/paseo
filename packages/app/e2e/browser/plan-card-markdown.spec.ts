@@ -4,6 +4,65 @@ import { waitForPermissionPrompt } from "../support/helpers/permissions";
 import { openAgentRoute, seedMockAgentWorkspace } from "../support/helpers/mock-agent";
 
 // Literal shell commands and copyright markers must survive Markdown rendering.
+test("renders CJK emphasis and highlights in chat and file preview", async ({ page }, testInfo) => {
+  const { writeFile } = await import("node:fs/promises");
+  const source =
+    "**Obsidian：**决定去哪找、哪些文件算更新包、应该加载哪个版本。\n\n" +
+    "闪烁的是==中间片段库==；缓存按 **「快速缓存＝声音＋间隔画面」「转码缓存＝视频预览」**区分。\n\n" +
+    "Open [Preview](README.md).\n\n`==literal==` and `**literal：**`";
+  const session = await seedMockAgentWorkspace({
+    repoPrefix: "cjk-markdown-",
+    title: "CJK Markdown",
+    featureValues: { mockAssistantResponse: source },
+    initialPrompt: "Show CJK Markdown",
+  });
+  try {
+    await writeFile(`${session.cwd}/README.md`, source, "utf8");
+    await session.client.waitForFinish(session.agentId, 30_000);
+    await openAgentRoute(page, session);
+    const message = page.getByTestId("assistant-message");
+    await expectCjkMarkdown(message);
+    await testInfo.attach("cjk-chat-wide", {
+      body: await page.screenshot({ path: testInfo.outputPath("cjk-chat-wide.png") }),
+      contentType: "image/png",
+    });
+    await message.getByRole("link", { name: "Preview", exact: true }).click();
+    const preview = page.getByTestId("markdown-preview-frame");
+    await expectCjkMarkdown(preview);
+    await page.setViewportSize({ width: 390, height: 844 });
+    await expectCjkMarkdown(preview);
+    await testInfo.attach("cjk-preview-compact", {
+      body: await page.screenshot({ path: testInfo.outputPath("cjk-preview-compact.png") }),
+      contentType: "image/png",
+    });
+  } finally {
+    await session.cleanup();
+  }
+});
+
+async function expectCjkMarkdown(surface: Locator) {
+  await expect(surface.locator("strong")).toHaveText([
+    "Obsidian：",
+    "「快速缓存＝声音＋间隔画面」「转码缓存＝视频预览」",
+  ]);
+  await expect(surface.locator("mark")).toHaveText("中间片段库");
+  await expect(surface.locator(".enrm-text > p").nth(1)).toHaveText(
+    "闪烁的是中间片段库；缓存按 「快速缓存＝声音＋间隔画面」「转码缓存＝视频预览」区分。",
+  );
+  await expect(surface.locator("code")).toHaveText(["==literal==", "**literal：**"]);
+  const highlight = await surface.locator("mark").evaluate((element) => {
+    const style = getComputedStyle(element);
+    return { background: style.backgroundColor, color: style.color };
+  });
+  expect(highlight.background).not.toBe("rgba(0, 0, 0, 0)");
+  expect(highlight.color).toBe(
+    await surface
+      .locator("p")
+      .first()
+      .evaluate((element) => getComputedStyle(element).color),
+  );
+}
+
 test.describe("Plan card markdown", () => {
   test("renders plan text verbatim", async ({ page }) => {
     test.setTimeout(180_000);

@@ -66,6 +66,7 @@ At the start of non-trivial work, list `docs/` and skim anything relevant to the
 | [docs/android.md](docs/android.md)                                   | App variants, local/cloud builds, EAS workflows, version codes, F-Droid source builds and store metadata                       |
 | [docs/docker.md](docs/docker.md)                                     | Running the daemon and bundled web UI in Docker, volumes, agent images, security                                               |
 | [docs/release.md](docs/release.md)                                   | Release playbook, draft releases, completion checklist                                                                         |
+| [docs/moy-features.md](docs/moy-features.md)                         | Moy feature ledger, About data source, branch/merge status and post-merge audits                                               |
 | [docs/terminal-activity.md](docs/terminal-activity.md)               | Terminal activity indicators — source-agnostic tracker, agent hook reporting, adding a new hook provider                       |
 | [SECURITY.md](SECURITY.md)                                           | Relay threat model, E2E encryption, DNS rebinding, agent auth                                                                  |
 | [public-docs/hub/security.md](public-docs/hub/security.md)           | Public Hub guide — trust boundaries, untrusted triggers, provider controls, and output authority                               |
@@ -131,6 +132,10 @@ codesign --force --deep --sign - /Applications/Paseo.app
 Moy feature branches start from `origin/local/all-feats` and update from that
 branch. Do not merge `upstream/main` or beta history into them or into the Moy
 release branch. Follow [Moy stable builds](docs/release.md#moy-stable-builds).
+
+When starting a fork feature or integrating a branch, follow
+[Moy feature maintenance](docs/moy-features.md): maintain `FORK_FEATURES.json`
+with the implementation and verify existing feature entry points after merges.
 
 When the user says "this goes to next", create or
 retarget the PR to `next` and preserve that destination through delivery. Follow

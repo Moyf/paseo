@@ -10,10 +10,88 @@ import { decodeMarkdownImage, getMarkdownImageStatus } from "./image-decoding";
 import { describe, expect, it } from "vitest";
 import { darkTheme, lightTheme } from "@/styles/theme";
 import { createMarkdownStyles } from "./styles";
-import { prepareMarkdownSource, PENDING_MARKDOWN_IMAGE } from "./source";
+import { MARKDOWN_FLAGS, prepareMarkdownSource, PENDING_MARKDOWN_IMAGE } from "./source";
 import { normalizeMarkdownHtml } from "./html";
 
 describe("shared Markdown source adaptation", () => {
+  it("renders a bold CJK label without spaces after its punctuation", async () => {
+    const source = "**Obsidian：**决定去哪找、哪些文件算更新包、应该加载哪个版本。";
+    const tree = await parseMarkdown(prepareMarkdownSource(source).render(), {
+      latexMath: false,
+    });
+    expect(tree.children?.[0]?.children).toEqual([
+      { type: "Strong", children: [{ type: "Text", content: "Obsidian：" }] },
+      { type: "Text", content: "决定去哪找、哪些文件算更新包、应该加载哪个版本。" },
+    ]);
+  });
+  it("renders adjacent CJK highlights and quoted bold text", async () => {
+    const source =
+      "闪烁的是==中间片段库==；缓存按 **「快速缓存＝声音＋间隔画面」「转码缓存＝视频预览」**区分。";
+    const tree = await parseMarkdown(prepareMarkdownSource(source).render(), MARKDOWN_FLAGS);
+    expect(tree.children?.[0]?.children).toEqual([
+      { type: "Text", content: "闪烁的是" },
+      { type: "Highlight", children: [{ type: "Text", content: "中间片段库" }] },
+      { type: "Text", content: "；缓存按 " },
+      {
+        type: "Strong",
+        children: [{ type: "Text", content: "「快速缓存＝声音＋间隔画面」「转码缓存＝视频预览」" }],
+      },
+      { type: "Text", content: "区分。" },
+    ]);
+  });
+  it.each([
+    ["前**「中文」**后", "Strong", "「中文」"],
+    ["前*「日本語。」*后", "Emphasis", "「日本語。」"],
+    ["前**（한국어）**后", "Strong", "（한국어）"],
+    ["前***「中文」***后", "Emphasis", "「中文」"],
+    ["前**︵中文︶**后", "Strong", "︵中文︶"],
+  ])("renders CJK punctuation inside emphasis: %s", async (source, type, text) => {
+    const tree = await parseMarkdown(prepareMarkdownSource(source).render(), MARKDOWN_FLAGS);
+    const content = tree.children?.[0]?.children;
+    expect(content?.map((node) => node.type)).toEqual(["Text", type, "Text"]);
+    function nodeText(node: ASTNode): string {
+      return node.content ?? node.children?.map(nodeText).join("") ?? "";
+    }
+    expect(content?.map(nodeText)).toEqual(["前", text, "后"]);
+  });
+  it.each([
+    String.raw`\*\*Obsidian：\*\*决定`,
+    String.raw`\=\=中间片段库\=\=`,
+    "before**word:**after",
+    "前__「中文」__后",
+    "** 中文 **",
+    "unfinished **「中文」",
+  ])("keeps escaped, unfinished and non-CJK delimiters literal: %s", async (source) => {
+    const tree = await parseMarkdown(prepareMarkdownSource(source).render(), MARKDOWN_FLAGS);
+    expect(tree.children?.[0]?.children).toEqual([
+      { type: "Text", content: source.replace(/\\([*=])/g, "$1") },
+    ]);
+  });
+  it("keeps emphasis and highlight delimiters literal in code", async () => {
+    const source = "`**Obsidian：**决定 ==高亮==`\n\n```md\n**「中文」**后 ==高亮==\n```";
+    const tree = await parseMarkdown(prepareMarkdownSource(source).render(), MARKDOWN_FLAGS);
+    expect(tree.children?.[0]?.children).toEqual([
+      { type: "Code", children: [{ type: "Text", content: "**Obsidian：**决定 ==高亮==" }] },
+    ]);
+    expect(tree.children?.[1]).toMatchObject({
+      type: "CodeBlock",
+      children: [{ type: "Text", content: "**「中文」**后 ==高亮==\n" }],
+    });
+  });
+  it("keeps nested bold text and inline code inside a highlight", async () => {
+    const source = "==**重要：**请读 `file.ts`==";
+    const tree = await parseMarkdown(prepareMarkdownSource(source).render(), MARKDOWN_FLAGS);
+    expect(tree.children?.[0]?.children).toEqual([
+      {
+        type: "Highlight",
+        children: [
+          { type: "Strong", children: [{ type: "Text", content: "重要：" }] },
+          { type: "Text", content: "请读 " },
+          { type: "Code", children: [{ type: "Text", content: "file.ts" }] },
+        ],
+      },
+    ]);
+  });
   it("keeps paragraphs, fences and quotes together for the library", () => {
     const source = "First paragraph.\n\nSecond paragraph.\n\n```ts\nconst n = 1;\n```\n\n> Quote";
     expect(prepareMarkdownSource(source).render()).toBe(source);
@@ -382,6 +460,17 @@ it.each(['""', "''", "()"])("preserves an authored empty link title: %s", (title
 });
 
 describe("shared Markdown theme colours", () => {
+  it.each([darkTheme, lightTheme])("keeps compact muted highlights readable", (theme) => {
+    const { markdownStyle } = createMarkdownStyles(theme, {
+      compact: true,
+      muted: true,
+      blockGap: 12,
+    });
+    expect(markdownStyle.highlight).toEqual({
+      color: theme.colors.foregroundMuted,
+      backgroundColor: theme.colors.statusWarningTint,
+    });
+  });
   it.each([
     ["dark", darkTheme],
     ["light", lightTheme],
@@ -401,6 +490,10 @@ describe("shared Markdown theme colours", () => {
       markerColor: theme.colors.foregroundMuted,
     });
     expect(style.h6?.color).toBe(theme.colors.foregroundMuted);
+    expect(style.highlight).toEqual({
+      color: theme.colors.foreground,
+      backgroundColor: theme.colors.statusWarningTint,
+    });
     expect(style.taskList).toMatchObject({
       checkedTextColor: theme.colors.foregroundMuted,
       checkedColor: theme.colors.accent,

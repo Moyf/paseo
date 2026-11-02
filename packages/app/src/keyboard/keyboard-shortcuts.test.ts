@@ -134,6 +134,27 @@ interface HelpSectionCase {
 }
 
 describe("keyboard-shortcuts", () => {
+  it("lists Reveal in workspace shortcuts without taking a default key", () => {
+    const sections = buildKeyboardShortcutHelpSections({ isMac: false, isDesktop: true });
+    const workspaces = sections.find((section) => section.id === "workspaces");
+    expect(workspaces?.rows.find((row) => row.id === "reveal-workspace-in-sidebar")).toMatchObject({
+      labelKey: "sidebar.workspace.actions.revealInSidebar",
+      chord: null,
+    });
+    expect(
+      getDefaultKeysForAction("reveal-workspace-in-sidebar", { isMac: false, isDesktop: true }),
+    ).toBeNull();
+  });
+
+  it("dispatches the configured Reveal shortcut and respects terminal focus", () => {
+    const bindings = buildEffectiveBindings({ "workspace-reveal-in-sidebar": "Ctrl+Alt+L" });
+    const event = { key: "l", code: "KeyL", ctrlKey: true, altKey: true };
+    expect(resolveShortcut({ event, bindings }).match?.action).toBe("workspace.reveal-in-sidebar");
+    expect(
+      resolveShortcut({ event, bindings, context: { focusScope: "terminal" } }).match,
+    ).toBeNull();
+  });
+
   const matchingCases: MatchingShortcutCase[] = [
     {
       name: "matches Cmd+O to open project",

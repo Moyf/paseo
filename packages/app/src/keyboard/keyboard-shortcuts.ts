@@ -169,6 +169,7 @@ export const SHORTCUT_HELP_ROW_ORDER: Record<ShortcutSectionId, readonly string[
     "workspace-next",
     "pin-workspace",
     "rename-workspace",
+    "reveal-workspace-in-sidebar",
     "archive-workspace",
   ],
   "tabs-panes": [
@@ -209,6 +210,7 @@ const SHORTCUT_HELP_LABEL_KEYS: Record<string, string> = {
   "new-agent": "settings.shortcuts.help.openProject",
   "new-workspace": "settings.shortcuts.help.newWorkspace",
   "rename-workspace": "settings.shortcuts.help.renameWorkspace",
+  "reveal-workspace-in-sidebar": "sidebar.workspace.actions.revealInSidebar",
   "switch-project": "settings.shortcuts.help.switchProject",
   "archive-workspace": "settings.shortcuts.help.archiveWorkspace",
   "workspace-tab-new": "settings.shortcuts.help.newTab",
@@ -427,6 +429,18 @@ const SHORTCUT_BINDINGS: readonly ShortcutBinding[] = [
   },
 
   // --- Tab management ---
+  {
+    id: "workspace-reveal-in-sidebar",
+    action: "workspace.reveal-in-sidebar",
+    combo: "",
+    when: { commandCenter: false, terminal: false },
+    help: {
+      id: "reveal-workspace-in-sidebar",
+      section: "workspaces",
+      label: "Reveal in sidebar",
+    },
+  },
+
   {
     id: "workspace-tab-new-cmd-t-mac",
     action: "workspace.tab.menu.open",

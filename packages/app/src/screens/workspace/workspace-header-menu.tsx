@@ -34,7 +34,10 @@ import {
   resolveTerminalProfiles,
 } from "@getpaseo/protocol/terminal-profiles";
 import { buildSettingsHostSectionRoute } from "@/utils/host-routes";
-import type { ShortcutKey } from "@/utils/format-shortcut";
+import { useKeyboardShortcutOverrides } from "@/hooks/use-keyboard-shortcut-overrides";
+import { resolveShortcutKeysForAction } from "@/keyboard/keyboard-shortcuts";
+import { getShortcutOs } from "@/utils/shortcut-platform";
+import { getIsElectron } from "@/constants/platform";
 import type { Theme } from "@/styles/theme";
 import {
   useWorkspaceScriptsMenuPages,
@@ -57,8 +60,6 @@ const MENU_SETTINGS_ICON = <ThemedSettings size={16} uniProps={mutedColorMapping
 
 const ThemedLocateFixed = withUnistyles(LocateFixed);
 
-const REVEAL_BUTTON_TOOLTIP_KEYS: ShortcutKey[] = [];
-
 /**
  * The header's crosshair: reveals the current workspace in the sidebar list — the same flow as
  * the command-center entry and the title's right-click menu, one press away.
@@ -70,12 +71,17 @@ export function WorkspaceHeaderRevealButton({
   onPress: () => void;
   label: string;
 }) {
+  const { overrides } = useKeyboardShortcutOverrides();
+  const tooltipKeys = resolveShortcutKeysForAction("reveal-workspace-in-sidebar", overrides, {
+    isMac: getShortcutOs() === "mac",
+    isDesktop: getIsElectron(),
+  });
   return (
     <HeaderToggleButton
       testID="workspace-header-reveal-in-sidebar-button"
       onPress={onPress}
       tooltipLabel={label}
-      tooltipKeys={REVEAL_BUTTON_TOOLTIP_KEYS}
+      tooltipKeys={tooltipKeys?.[0] ?? []}
       tooltipSide="bottom"
       accessible
       accessibilityRole="button"

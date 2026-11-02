@@ -13,14 +13,13 @@ import { density, resolveDensity } from "@/styles/density";
 import { MarkdownBlockStack } from "./block-stack";
 import { WEB_RENDERERS } from "./renderers";
 import { createMarkdownStyles } from "./styles";
-import { PENDING_MARKDOWN_IMAGE } from "./source";
+import { MARKDOWN_FLAGS, PENDING_MARKDOWN_IMAGE } from "./source";
 import { splitStreamingMarkdown } from "./streaming";
 import { useMarkdownSource, type MarkdownImageContext } from "./images";
 
 import { MermaidFence, MermaidStreamingContext, splitMermaidFences } from "./fence/mermaid";
 
 const ThemedMarkdown = withUnistyles(EnrichedMarkdownText);
-const MD4C_FLAGS = { latexMath: false, hardSoftBreaks: true, admonitions: true };
 
 // Reading the breakpoint here makes Unistyles restyle the text when the layout crosses it.
 const markdownStyle =
@@ -118,7 +117,7 @@ const MarkdownPart = memo(function MarkdownPart({
               uniProps={pickMarkdownStyle(compact, muted)}
               flavor="github"
               selectable={selectable}
-              md4cFlags={MD4C_FLAGS}
+              md4cFlags={MARKDOWN_FLAGS}
               linkRecognition={linkRecognition}
               enableTaskListItemToggle={false}
               enableLinkPreview={false}

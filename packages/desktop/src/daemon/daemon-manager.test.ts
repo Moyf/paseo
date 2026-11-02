@@ -4,7 +4,7 @@ import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { DEFAULT_DESKTOP_SETTINGS } from "../settings/desktop-settings";
-import { createDaemonCommandHandlers } from "./daemon-manager";
+import { createDaemonCommandHandlers, desktopVersionsDiffer } from "./daemon-manager";
 
 const mocks = vi.hoisted(() => ({
   paseoHome: "",
@@ -174,5 +174,31 @@ describe("daemon-manager commands", () => {
     expect(await handler({ listen: "remote:6799" })).toBeNull();
     writeFileSync(lockPath, JSON.stringify({ ...lock, desktopManaged: false }));
     expect(await handler({ listen: "localhost:6799" })).toBeNull();
+  });
+});
+
+describe("desktopVersionsDiffer", () => {
+  it("treats a fork build suffix as the same version as its stable base", () => {
+    expect(desktopVersionsDiffer("0.14.0-af.20261102.9f5fbac", "0.14.0")).toBe(false);
+    expect(desktopVersionsDiffer("0.14.0", "0.14.0-af.20261102.9f5fbac")).toBe(false);
+    expect(desktopVersionsDiffer("0.15.0-beta.1", "0.15.0")).toBe(false);
+  });
+
+  it("restarts only when the stable base differs", () => {
+    expect(desktopVersionsDiffer("0.14.0", "0.13.2")).toBe(true);
+    expect(desktopVersionsDiffer("0.14.1-af.20261201.aaaaaaa", "0.14.0")).toBe(true);
+  });
+
+  it("ignores the leading v and surrounding whitespace", () => {
+    expect(desktopVersionsDiffer("v0.14.0", "0.14.0")).toBe(false);
+    expect(desktopVersionsDiffer(" 0.14.0 ", "0.14.0")).toBe(false);
+  });
+
+  it("falls back to strict inequality when a version has no stable base", () => {
+    expect(desktopVersionsDiffer("dev", "dev")).toBe(false);
+    expect(desktopVersionsDiffer("dev", "0.14.0")).toBe(true);
+    expect(desktopVersionsDiffer(null, "0.14.0")).toBe(false);
+    expect(desktopVersionsDiffer("0.14.0", null)).toBe(false);
+    expect(desktopVersionsDiffer(null, null)).toBe(false);
   });
 });

@@ -29,7 +29,7 @@ export function openProjectSettings(serverId: string, projectId: string): void {
   router.push(buildProjectSettingsRoute(serverId, projectId));
 }
 
-export function buildSettingsRouteForView(view: SettingsView): string {
+export function buildSettingsRouteForView(view: SettingsView) {
   switch (view.kind) {
     case "section":
       return buildSettingsSectionRoute(view.section);
@@ -44,7 +44,7 @@ export function buildSettingsRouteForView(view: SettingsView): string {
   }
 }
 
-export function resolveSettingsOpenRoute(): string {
+export function resolveSettingsOpenRoute() {
   const lastView = getLastSettingsView();
   if (!lastView) {
     return buildSettingsRoute();

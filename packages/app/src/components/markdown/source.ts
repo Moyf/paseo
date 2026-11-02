@@ -7,6 +7,14 @@ import type { AssistantFileLinkSource } from "@/assistant-file-links";
 import { decodeString } from "micromark-util-decode-string";
 import { fromMarkdown } from "mdast-util-from-markdown";
 import type { Link, Nodes, Paragraph, PhrasingContent, Root } from "mdast";
+import type { Md4cFlags } from "react-native-enriched-markdown";
+
+export const MARKDOWN_FLAGS = {
+  latexMath: false,
+  hardSoftBreaks: true,
+  admonitions: true,
+  highlight: true,
+} satisfies Md4cFlags;
 
 // Keep this regex in the syntax shared by JavaScript, ICU and java.util.regex.
 // The Unicode flag makes Metro expand it to escapes rejected by native engines.

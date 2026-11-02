@@ -1,0 +1,170 @@
+
+> @getpaseo/app@0.14.0 test:e2e
+> playwright test --project=browser e2e/browser/plan-card-markdown.spec.ts --grep renders CJK emphasis --workers=1
+
+[metro] Skipping web setup: EXPO_NO_WEB_SETUP is enabled.
+[metro] Using src/app as the root directory for Expo Router.
+[metro] Waiting on http://localhost:56805
+[metro] Logs for your project will appear below.
+[metro] Web Bundled 3028ms packages\app\index.ts (5744 modules)
+[e2e] Metro warmed on port 56805
+
+Running 1 test using 1 worker
+
+[e2e] Worker 0 daemon started on port 57447, home: C:\Users\lei.hu\AppData\Local\Temp\paseo-e2e-worker-0-eIJJkf
+[metro] Web Bundled 212ms packages\app\index.ts (1 module)
+[metro] Web Bundled 47ms packages\app\src\attachments\web\indexeddb-attachment-store.ts (1 module)
+[metro] Web  INFO  %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[metro] Web  LOG  Running application "main" with appParams:
+[metro]  {"hydrate": undefined, "rootTag": "#root"}
+[metro] Development-level warnings: ON.
+[metro] Performance optimizations: OFF.
+[metro] Web  WARN  Require cycle: src/stores/workspace-layout-store.ts -> src/plugins/workspace-panels/locations.ts -> src/plugins/registry.ts -> src/plugins/client-runtime.ts -> src/runtime/host-runtime.ts -> src/desktop/browser/automation/handler.ts -> src/stores/workspace-layout-store.ts
+[metro] Require cycles are allowed, but can result in uninitialized values. Consider refactoring to remove the need for a cycle.
+[metro] Web  WARN  Require cycle: src/runtime/host-runtime.ts -> src/runtime/directory-sync/index.ts -> src/runtime/directory-sync/agent-replica.ts -> src/hooks/use-archive-agent.ts -> src/runtime/host-runtime.ts
+[metro] Require cycles are allowed, but can result in uninitialized values. Consider refactoring to remove the need for a cycle.
+[metro] Web  WARN  Require cycle: src/plugins/workspace-panels/locations.ts -> src/plugins/registry.ts -> src/plugins/client-runtime.ts -> src/plugins/actions.ts -> src/plugins/workspace-panels/locations.ts
+[metro] Require cycles are allowed, but can result in uninitialized values. Consider refactoring to remove the need for a cycle.
+[metro] Web  WARN  Require cycle: src/stores/navigation-active-workspace-store/index.ts -> src/workspace-tabs/navigation.ts -> src/stores/workspace-layout-store.ts -> src/plugins/workspace-panels/locations.ts -> src/plugins/registry.ts -> src/plugins/client-runtime.ts -> src/plugins/navigation.ts -> src/stores/navigation-active-workspace-store/index.ts
+[metro] Require cycles are allowed, but can result in uninitialized values. Consider refactoring to remove the need for a cycle.
+[metro] Web  WARN  Require cycle: src/stores/workspace-layout-store.ts -> src/plugins/workspace-panels/locations.ts -> src/plugins/registry.ts -> src/plugins/client-runtime.ts -> src/plugins/navigation.ts -> src/stores/workspace-layout-store.ts
+[metro] Require cycles are allowed, but can result in uninitialized values. Consider refactoring to remove the need for a cycle.
+[metro] Web  WARN  Require cycle: src/plugins/registry.ts -> src/plugins/evaluate.ts -> src/plugins/themes/index.ts -> src/plugins/registry.ts
+[metro] Require cycles are allowed, but can result in uninitialized values. Consider refactoring to remove the need for a cycle.
+[metro] Web  WARN  Require cycle: src/components/sidebar-workspace-list.tsx -> src/components/sidebar/sidebar-status-list.tsx -> src/components/sidebar/sidebar-workspace-row-content.tsx -> src/components/workspace-hover-card.tsx -> src/components/sidebar-workspace-list.tsx
+[metro] Require cycles are allowed, but can result in uninitialized values. Consider refactoring to remove the need for a cycle.
+[metro] Web  WARN  props.pointerEvents is deprecated. Use style.pointerEvents
+[metro] Web  WARN  Animated: `useNativeDriver` is not supported because the native animated module is missing. Falling back to JS-based animation. To resolve this, add `RCTAnimation` module to this app, or remove `useNativeDriver`. Make sure to run `bundle exec pod install` first. Read more about autolinking: https://github.com/react-native-community/cli/blob/master/docs/autolinking.md
+[metro] Web  ERROR
+[metro] Code: context-menu.tsx
+[metro]   195 |         : style;
+[metro]   196 |     return (
+[metro] > 197 |       <View
+[metro]       |       ^
+[metro]   198 |         {...(props as ViewProps)}
+[metro]   199 |         ref={handleRef}
+[metro]   200 |         collapsable={false}
+[metro] Call Stack
+[metro]   ContextMenuTrigger (packages\app\src\components\ui\context-menu.tsx:197:7)
+[metro]   WebLink (packages\app\src\components\markdown\renderers.web.tsx:68:9)
+[metro]   segments.map$argument_0 (packages\app\src\components\markdown\renderer.tsx:111:11)
+[metro]   MarkdownPart (packages\app\src\components\markdown\renderer.tsx:110:18)
+[metro]   MarkdownRenderer (packages\app\src\components\markdown\renderer.tsx:61:44)
+[metro]   AssistantMessage (packages\app\src\components\message.tsx:1200:7)
+[metro]   ChatFindExpansion.props.children (packages\app\src\agent-stream\view.tsx:828:17)
+[metro]   ChatFindExpansion (packages\app\src\agent-stream\chat-find\index.web.tsx:52:10)
+[metro]   renderAssistantMessageItem (packages\app\src\agent-stream\view.tsx:826:13)
+[metro]   renderStreamItemContent (packages\app\src\agent-stream\view.tsx:993:20)
+[metro]   renderStreamItem (packages\app\src\agent-stream\view.tsx:1050:25)
+[metro]   StreamRow (packages\app\src\agent-stream\view.tsx:258:13)
+[metro]   renderStreamRow (packages\app\src\agent-stream\view.tsx:271:5)
+[metro]   renderHistoryRow (packages\app\src\agent-stream\view.tsx:1164:9)
+[metro]   renderHistoryMountedRow (packages\app\src\agent-stream\view.tsx:1176:17)
+[metro]   StreamRowContent (packages\app\src\agent-stream\strategy-web.tsx:287:10)
+[metro]   segments.historyMounted.map$argument_0 (packages\app\src\agent-stream\strategy-web.tsx:1271:9)
+[metro]   useMemo$argument_0 (packages\app\src\agent-stream\strategy-web.tsx:1263:36)
+[metro]   WebStreamViewport (packages\app\src\agent-stream\strategy-web.tsx:1262:37)
+[metro]   createStreamStrategy$argument_0.render (packages\app\src\agent-stream\strategy-web.tsx:1382:7)
+[metro]   AgentStreamView (packages\app\src\agent-stream\view.tsx:1265:38)
+[metro]   AgentStreamSection (packages\app\src\panels\agent-panel.tsx:1413:5)
+[metro]   ChatAgentReadyContent (packages\app\src\panels\agent-panel.tsx:1198:9)
+[metro]   ChatAgentContent (packages\app\src\panels\agent-panel.tsx:1014:5)
+[metro]   AgentPanelBody (packages\app\src\panels\agent-panel.tsx:656:5)
+[metro]   AgentPanelContent (packages\app\src\panels\agent-panel.tsx:501:5)
+[metro]   AgentPanel (packages\app\src\panels\agent-panel.tsx:314:7)
+[metro]   AgentConversationPanel (packages\app\src\panels\agent-panel.tsx:369:12)
+[metro]   WorkspacePaneContent (packages\app\src\screens\workspace\workspace-pane-content.tsx:162:13)
+[metro]   MountedTab (packages\app\src\screens\workspace\workspace-panel-host.tsx:55:9)
+[metro]   mountedIds.map$argument_0 (packages\app\src\screens\workspace\workspace-panel-host.tsx:126:7)
+[metro]   WorkspacePanelHost (packages\app\src\screens\workspace\workspace-panel-host.tsx:121:20)
+[metro]   SplitPaneView (packages\app\src\components\split-container.tsx:800:11)
+[metro]   SplitNodeView (packages\app\src\components\split-container.tsx:511:11)
+[metro]   node.group.children.map$argument_0 (packages\app\src\components\split-container.tsx:562:13)
+[metro]   SplitNodeView (packages\app\src\components\split-container.tsx:555:28)
+[metro]   SplitContainer (packages\app\src\components\split-container.tsx:248:14)
+[metro]   useMemo$argument_0 (packages\app\src\screens\workspace\workspace-screen.tsx:3534:7)
+[metro]   WorkspaceScreenContent (packages\app\src\screens\workspace\workspace-screen.tsx:3529:38)
+[metro]   WorkspaceScreen (packages\app\src\screens\workspace\workspace-screen.tsx:442:5)
+[metro]   WorkspaceDeckEntry (packages\app\src\app\h\[serverId]\workspace\[workspaceId]\index.tsx:261:7)
+[metro]   renderedEntries.map$argument_0 (packages\app\src\app\h\[serverId]\workspace\[workspaceId]\index.tsx:216:13)
+[metro]   WorkspaceDeck (packages\app\src\app\h\[serverId]\workspace\[workspaceId]\index.tsx:214:25)
+[metro]   HostWorkspaceRouteContent (packages\app\src\app\h\[serverId]\workspace\[workspaceId]\index.tsx:146:10)
+[metro]   HostWorkspaceIndexRoute (packages\app\src\app\h\[serverId]\workspace\[workspaceId]\index.tsx:96:7)
+[metro]   ThemedStackBase (packages\app\src\navigation\themed-stack.tsx:64:5)
+[metro]   KnownHostRoute (packages\app\src\app\h\[serverId]\_layout.tsx:39:5)
+[metro]   HostRouteLayout (packages\app\src\app\h\[serverId]\_layout.tsx:18:10)
+[metro]   ThemedStackBase (packages\app\src\navigation\themed-stack.tsx:64:5)
+[metro]   RootStack (packages\app\src\app\_layout.tsx:797:5)
+[metro]   AppShell (packages\app\src\app\_layout.tsx:843:11)
+[metro]   RootAppTree (packages\app\src\app\_layout.tsx:897:15)
+[metro]   RootLayout (packages\app\src\app\_layout.tsx:917:10)
+[metro]   RootRouter (packages\app\src\root-app.tsx:35:15)
+[metro]   RootApp (packages\app\src\root-app.tsx:19:7)
+[metro] Web  ERROR
+[metro] Code: renderer.tsx
+[metro]   109 |       <MarkdownBlockStack imageSources={imageSources}>
+[metro]   110 |         {segments.map((segment) =>
+[metro] > 111 |           segment.kind === "mermaid" ? (
+[metro]       |           ^
+[metro]   112 |             <MermaidFence key={`${segment.kind}:${segment.id}`} code={segment.source} />
+[metro]   113 |           ) : (
+[metro]   114 |             <ThemedMarkdown
+[metro] Call Stack
+[metro]   segments.map$argument_0 (packages\app\src\components\markdown\renderer.tsx:111:11)
+[metro]   MarkdownPart (packages\app\src\components\markdown\renderer.tsx:110:18)
+[metro]   MarkdownRenderer (packages\app\src\components\markdown\renderer.tsx:61:44)
+[metro]   AssistantMessage (packages\app\src\components\message.tsx:1200:7)
+[metro]   ChatFindExpansion.props.children (packages\app\src\agent-stream\view.tsx:828:17)
+[metro]   ChatFindExpansion (packages\app\src\agent-stream\chat-find\index.web.tsx:52:10)
+[metro]   renderAssistantMessageItem (packages\app\src\agent-stream\view.tsx:826:13)
+[metro]   renderStreamItemContent (packages\app\src\agent-stream\view.tsx:993:20)
+[metro]   renderStreamItem (packages\app\src\agent-stream\view.tsx:1050:25)
+[metro]   StreamRow (packages\app\src\agent-stream\view.tsx:258:13)
+[metro]   renderStreamRow (packages\app\src\agent-stream\view.tsx:271:5)
+[metro]   renderHistoryRow (packages\app\src\agent-stream\view.tsx:1164:9)
+[metro]   renderHistoryMountedRow (packages\app\src\agent-stream\view.tsx:1176:17)
+[metro]   StreamRowContent (packages\app\src\agent-stream\strategy-web.tsx:287:10)
+[metro]   segments.historyMounted.map$argument_0 (packages\app\src\agent-stream\strategy-web.tsx:1271:9)
+[metro]   useMemo$argument_0 (packages\app\src\agent-stream\strategy-web.tsx:1263:36)
+[metro]   WebStreamViewport (packages\app\src\agent-stream\strategy-web.tsx:1262:37)
+[metro]   createStreamStrategy$argument_0.render (packages\app\src\agent-stream\strategy-web.tsx:1382:7)
+[metro]   AgentStreamView (packages\app\src\agent-stream\view.tsx:1265:38)
+[metro]   AgentStreamSection (packages\app\src\panels\agent-panel.tsx:1413:5)
+[metro]   ChatAgentReadyContent (packages\app\src\panels\agent-panel.tsx:1198:9)
+[metro]   ChatAgentContent (packages\app\src\panels\agent-panel.tsx:1014:5)
+[metro]   AgentPanelBody (packages\app\src\panels\agent-panel.tsx:656:5)
+[metro]   AgentPanelContent (packages\app\src\panels\agent-panel.tsx:501:5)
+[metro]   AgentPanel (packages\app\src\panels\agent-panel.tsx:314:7)
+[metro]   AgentConversationPanel (packages\app\src\panels\agent-panel.tsx:369:12)
+[metro]   WorkspacePaneContent (packages\app\src\screens\workspace\workspace-pane-content.tsx:162:13)
+[metro]   MountedTab (packages\app\src\screens\workspace\workspace-panel-host.tsx:55:9)
+[metro]   mountedIds.map$argument_0 (packages\app\src\screens\workspace\workspace-panel-host.tsx:126:7)
+[metro]   WorkspacePanelHost (packages\app\src\screens\workspace\workspace-panel-host.tsx:121:20)
+[metro]   SplitPaneView (packages\app\src\components\split-container.tsx:800:11)
+[metro]   SplitNodeView (packages\app\src\components\split-container.tsx:511:11)
+[metro]   node.group.children.map$argument_0 (packages\app\src\components\split-container.tsx:562:13)
+[metro]   SplitNodeView (packages\app\src\components\split-container.tsx:555:28)
+[metro]   SplitContainer (packages\app\src\components\split-container.tsx:248:14)
+[metro]   useMemo$argument_0 (packages\app\src\screens\workspace\workspace-screen.tsx:3534:7)
+[metro]   WorkspaceScreenContent (packages\app\src\screens\workspace\workspace-screen.tsx:3529:38)
+[metro]   WorkspaceScreen (packages\app\src\screens\workspace\workspace-screen.tsx:442:5)
+[metro]   WorkspaceDeckEntry (packages\app\src\app\h\[serverId]\workspace\[workspaceId]\index.tsx:261:7)
+[metro]   renderedEntries.map$argument_0 (packages\app\src\app\h\[serverId]\workspace\[workspaceId]\index.tsx:216:13)
+[metro]   WorkspaceDeck (packages\app\src\app\h\[serverId]\workspace\[workspaceId]\index.tsx:214:25)
+[metro]   HostWorkspaceRouteContent (packages\app\src\app\h\[serverId]\workspace\[workspaceId]\index.tsx:146:10)
+[metro]   HostWorkspaceIndexRoute (packages\app\src\app\h\[serverId]\workspace\[workspaceId]\index.tsx:96:7)
+[metro]   ThemedStackBase (packages\app\src\navigation\themed-stack.tsx:64:5)
+[metro]   KnownHostRoute (packages\app\src\app\h\[serverId]\_layout.tsx:39:5)
+[metro]   HostRouteLayout (packages\app\src\app\h\[serverId]\_layout.tsx:18:10)
+[metro]   ThemedStackBase (packages\app\src\navigation\themed-stack.tsx:64:5)
+[metro]   RootStack (packages\app\src\app\_layout.tsx:797:5)
+[metro]   AppShell (packages\app\src\app\_layout.tsx:843:11)
+[metro]   RootAppTree (packages\app\src\app\_layout.tsx:897:15)
+[metro]   RootLayout (packages\app\src\app\_layout.tsx:917:10)
+[metro]   RootRouter (packages\app\src\root-app.tsx:35:15)
+[metro]   RootApp (packages\app\src\root-app.tsx:19:7)
+  ok 1 [browser] › e2e\browser\plan-card-markdown.spec.ts:7:5 › renders CJK emphasis and highlights in chat and file preview (8.9s)
+[e2e] Worker 0 daemon stopped
+[e2e] Metro stopped
+
+  1 passed (58.1s)

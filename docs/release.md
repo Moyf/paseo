@@ -63,6 +63,10 @@ The build checks that its base tag is an ancestor and refuses commits from
 upstream main that are not in that tag. This guard does not recognize copied or
 squashed upstream changes; review those before merging.
 
+Before shipping a merge, audit the [Moy feature ledger](moy-features.md). Update
+its merge state and verify existing feature entry points; Git ancestry alone
+does not prove a feature still works.
+
 Enable `git config rerere.enabled true` and `git config rerere.autoupdate false`
 in the checkout to reuse earlier conflict resolutions without staging them
 automatically. Review the replayed diff and run checks before committing.
