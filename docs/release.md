@@ -72,9 +72,15 @@ macOS, and upload the EXE, Windows ZIP, DMG and macOS ZIP. The Release becomes
 public only after all four uploads are verified. Failed builds remain drafts;
 retry the failed jobs instead of publishing an empty Release or bumping versions.
 
-The scheduled workflow definition comes from the fork's default `main` branch.
-Keep `sync-all-feats.yml` there aligned with the release branch; its checkout
-still targets `local/all-feats`.
+Moy sync has no daily schedule. Ask an agent to synchronize a published stable
+release, or run `gh workflow run sync-all-feats.yml --repo Moyf/paseo --ref main`.
+The workflow checks out `local/all-feats`; conflicts require local review before
+retrying. Keep its definition on the default `main` branch aligned with the
+release branch.
+
+Nix workflows are disabled in the Moy repository, and their jobs are
+upstream-only. Retain the Nix source files to avoid delete/modify conflicts on
+stable updates. Windows and macOS desktop builds do not depend on Nix.
 
 ### Upstream release branches
 

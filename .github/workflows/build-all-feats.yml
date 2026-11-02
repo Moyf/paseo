@@ -17,6 +17,7 @@ on:
       - "scripts/verify-fork-release-assets.mjs"
       - "scripts/ci-workflow.test.mjs"
       - "scripts/upload-release-assets.test.mjs"
+      - "packages/relay/src/e2e.test.ts"
   workflow_dispatch:
 
 concurrency:

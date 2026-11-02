@@ -378,6 +378,39 @@ test("Moy sync fetches a published upstream stable release and checks the baseli
   assert.match(source, /gh release view --repo getpaseo\/paseo --json tagName/);
   assert.doesNotMatch(source, /git tag -l|git fetch upstream --tags --force/);
   assert.match(source, /scripts\/check-fork-release\.mjs/);
+  assert.match(source, /^  workflow_dispatch:/m);
+  assert.doesNotMatch(source.split("concurrency:")[0], /schedule:|cron:/);
+});
+
+test("Moy browser checks pin the supported Ubuntu image", () => {
+  const jobs = jobBlocks(readFileSync(ciWorkflowPath, "utf8"));
+  for (const jobName of [
+    "typecheck",
+    "app-tests",
+    ...Array.from({ length: 8 }, (_, i) => `playwright-${i + 1}`),
+  ]) {
+    assert.match(jobs.get(jobName).join("\n"), /runs-on: ubuntu-24\.04/, jobName);
+  }
+});
+
+test("Moy Nix jobs cannot run in the fork", () => {
+  for (const filename of ["nix.yml", "nix-update-hash.yml"]) {
+    const jobs = jobBlocks(
+      readFileSync(new URL(`.github/workflows/${filename}`, repoRoot), "utf8"),
+    );
+    for (const [name, lines] of jobs) {
+      assert.match(
+        lines.join("\n"),
+        /if: \$\{\{ github\.repository == 'getpaseo\/paseo' \}\}/,
+        name,
+      );
+    }
+  }
+});
+
+test("relay E2E runs locally without the deployment cutover origin", () => {
+  const source = readFileSync(new URL("packages/relay/src/e2e.test.ts", repoRoot), "utf8");
+  assert.match(source, /"--var",\s*"PASEO_RELAY_UPSTREAM:"/);
 });
 
 test("Moy baseline accepts fork features but refuses unreleased upstream commits", () => {
