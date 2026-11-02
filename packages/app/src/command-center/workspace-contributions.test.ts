@@ -118,6 +118,21 @@ function source(gitActions: GitActions): {
 }
 
 describe("workspace command center contributions", () => {
+  it("Reveal displays its configured shortcut and dispatches the shared workspace action", () => {
+    const fixture = source({ primary: null, secondary: [], menu: [] });
+    fixture.value.revealInSidebar = () => undefined;
+    fixture.value.shortcuts.revealInSidebar = [["ctrl", "alt", "L"]];
+    const entry = buildWorkspaceCommandCenterContributions(fixture.value).find(
+      (contribution) => contribution.id === "workspace:reveal-in-sidebar",
+    );
+    expect(entry?.presentation).toMatchObject({
+      title: "Reveal in sidebar",
+      shortcutKeys: [["ctrl", "alt", "L"]],
+    });
+    entry?.run();
+    expect(fixture.dispatched).toEqual([{ id: "workspace.reveal-in-sidebar", scope: "workspace" }]);
+  });
+
   it("makes only the policy-selected primary Git action default-visible and runs it", () => {
     const primary = gitAction("commit", "Commit");
     const fixture = source({

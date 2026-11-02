@@ -54,6 +54,38 @@ import { getServerId } from "../support/helpers/server-id";
 import { expectAppRoute } from "../support/helpers/route-assertions";
 import { clickNewChat, gotoWorkspace } from "../support/helpers/launcher";
 import { openAgentRoute, seedMockAgentWorkspace } from "../support/helpers/mock-agent";
+import ledger from "../../../../FORK_FEATURES.json";
+import { FORK_MERGE_STATUS_TEXT, ForkFeatureSchema } from "@/fork-info";
+
+for (const width of [390, 1280]) {
+  test(`Moy About reads feature dates, branches and merge status at ${width}px`, async ({
+    page,
+  }, info) => {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto(buildSettingsSectionRoute("about"));
+    const links = ledger.features.find((feature) => feature.id === "assistant-file-links");
+    if (!links) throw new Error("Assistant links are missing from the feature ledger");
+    const row = page.getByTestId(`fork-feature-${links.id}`);
+    await row.scrollIntoViewIfNeeded();
+    await expect(row).toContainText(links.label);
+    await expect(row).toContainText(links.addedOn);
+    await expect(row).toContainText(links.branch);
+    await expect(row).toContainText("已合入 Moy");
+    await expect(row).toContainText("PR #6420 · 待上游合并");
+    const bounds = await row.boundingBox();
+    if (!bounds) throw new Error("About feature row is not measurable");
+    expect(bounds.x).toBeGreaterThanOrEqual(0);
+    expect(bounds.x + bounds.width).toBeLessThanOrEqual(width);
+    expect(await row.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true);
+    await page.screenshot({ path: info.outputPath(`moy-about-${width}.png`) });
+    const reveal = page.getByTestId("fork-feature-sidebar-reveal");
+    await reveal.scrollIntoViewIfNeeded();
+    const revealEntry = ForkFeatureSchema.parse(
+      ledger.features.find((feature) => feature.id === "sidebar-reveal"),
+    );
+    await expect(reveal).toContainText(FORK_MERGE_STATUS_TEXT[revealEntry.forkStatus]);
+  });
+}
 
 async function openWorkspace(
   page: import("@playwright/test").Page,

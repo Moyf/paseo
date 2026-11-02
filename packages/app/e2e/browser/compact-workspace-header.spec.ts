@@ -39,9 +39,6 @@ async function openNamedWorkspace(page: Page, names: typeof labels.long) {
     await openAgentRoute(page, { workspaceId: workspace.workspaceId, agentId: agent.id });
     await expect(page.getByTestId("workspace-header-title")).toHaveText(names.title);
     await expect(page.getByTestId("workspace-header-subtitle")).toHaveText(names.project);
-    await expect(
-      page.getByTestId(`host-badge-${getServerId()}`).filter({ visible: true }),
-    ).toHaveCount(1);
     return workspace;
   } catch (error) {
     await workspace.cleanup();
@@ -99,6 +96,9 @@ for (const width of [320, 390]) {
       await page.setViewportSize({ width, height: 844 });
       const workspace = await openNamedWorkspace(page, labels[kind]);
       try {
+        await expect(
+          page.getByTestId(`host-badge-${getServerId()}`).filter({ visible: true }),
+        ).toHaveCount(1);
         await expectHeaderContentsFit(page, info, kind === "long");
       } finally {
         await workspace.cleanup();
@@ -108,8 +108,74 @@ for (const width of [320, 390]) {
 }
 
 const KEEP_ALIVE = 'node -e "setInterval(() => {}, 1000)"';
+
+test("desktop header reveals the workspace from its crosshair and title menu", async ({
+  page,
+}, info) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  const workspace = await openNamedWorkspace(page, labels.short);
+  try {
+    const revealButton = page.getByTestId("workspace-header-reveal-in-sidebar-button");
+    const sidebar = page.getByTestId("sidebar-sessions").filter({ visible: true });
+    const row = page.getByTestId(`sidebar-workspace-row-${getServerId()}:${workspace.workspaceId}`);
+    await expect(revealButton).toBeVisible();
+    const menuBounds = await page.getByTestId("workspace-header-menu-trigger").boundingBox();
+    const revealBounds = await revealButton.boundingBox();
+    if (!menuBounds || !revealBounds)
+      throw new Error("Workspace header actions are not measurable");
+    expect(revealBounds.x).toBeGreaterThanOrEqual(menuBounds.x + menuBounds.width);
+
+    await page.getByTestId("menu-button").filter({ visible: true }).click();
+    await expect(sidebar).toHaveCount(0);
+    await revealButton.click();
+    await expect(sidebar).toHaveCount(1);
+    await expect(row).toBeVisible();
+    await page.screenshot({ path: info.outputPath("workspace-reveal-button.png") });
+
+    await page.getByTestId("menu-button").filter({ visible: true }).click();
+    await expect(sidebar).toHaveCount(0);
+    await page.getByTestId("workspace-header-title").click({ button: "right" });
+    await page.getByTestId("workspace-header-reveal-in-sidebar").click();
+    await expect(sidebar).toHaveCount(1);
+    await expect(row).toBeVisible();
+  } finally {
+    await workspace.cleanup();
+  }
+});
 const WEB_SERVER =
   "node -e \"require('http').createServer((q, r) => r.end('ok')).listen(process.env.PASEO_PORT)\"";
+
+test("a configured Reveal shortcut locates the workspace and is listed in Command Center", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.addInitScript(() => {
+    localStorage.setItem(
+      "@paseo:keyboard-shortcut-overrides",
+      JSON.stringify({
+        "workspace-reveal-in-sidebar": "Ctrl+Alt+L",
+      }),
+    );
+  });
+  const workspace = await openNamedWorkspace(page, labels.short);
+  try {
+    const sidebar = page.getByTestId("sidebar-sessions").filter({ visible: true });
+    await page.getByTestId("menu-button").filter({ visible: true }).click();
+    await expect(sidebar).toHaveCount(0);
+    await page.keyboard.press("Control+Alt+L");
+    await expect(sidebar).toHaveCount(1);
+    await expect(
+      page.getByTestId(`sidebar-workspace-row-${getServerId()}:${workspace.workspaceId}`),
+    ).toBeVisible();
+    await page.keyboard.press(process.platform === "darwin" ? "Meta+K" : "Control+K");
+    const commandCenter = page.getByTestId("command-center-panel");
+    await expect(commandCenter).toBeVisible();
+    await commandCenter.getByRole("textbox").fill("Reveal");
+    await expect(commandCenter.getByText("Reveal in sidebar", { exact: true })).toBeVisible();
+  } finally {
+    await workspace.cleanup();
+  }
+});
 
 async function openWorkspaceWithScripts(page: Page) {
   const workspace = await seedWorkspace({

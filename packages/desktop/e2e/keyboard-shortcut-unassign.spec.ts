@@ -4,6 +4,9 @@ import type { Page } from "@playwright/test";
 import { test, expect } from "../../app/e2e/support/fixtures";
 import { gotoAppShell, openSettings } from "../../app/e2e/support/helpers/app";
 import { openSettingsSection } from "../../app/e2e/support/helpers/settings";
+import { openAgentRoute } from "../../app/e2e/support/helpers/mock-agent";
+import { seedWorkspace } from "../../app/e2e/support/helpers/seed-client";
+import { getServerId } from "../../app/e2e/support/helpers/server-id";
 
 // Settings > Keyboard Shortcuts is desktop-only (`desktopOnly` in
 // settings-screen.tsx), and the gate reads `getIsElectronRuntime()`, which only
@@ -55,6 +58,56 @@ async function openRowMenu(page: Page) {
   await page.getByTestId(`shortcut-actions-${SHORTCUTS_ROW}`).click();
   await expect(page.getByTestId(`shortcut-bind-${SHORTCUTS_ROW}`)).toBeVisible();
 }
+
+test("Reveal is unassigned by default, can be bound in settings and locates the workspace", async ({
+  page,
+}, info) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await installDesktopBridge(page, "win32");
+  const workspace = await seedWorkspace({ repoPrefix: "reveal-shortcut-" });
+  try {
+    const agent = await workspace.client.createAgent({
+      provider: "mock",
+      cwd: workspace.repoPath,
+      workspaceId: workspace.workspaceId,
+      title: "Reveal shortcut check",
+      modeId: "load-test",
+      model: "e2e-fast-stream",
+    });
+    await openAgentRoute(page, { workspaceId: workspace.workspaceId, agentId: agent.id });
+    await openSettings(page);
+    await openSettingsSection(page, "shortcuts");
+    const row = page.getByText("Reveal in sidebar", { exact: true }).locator("..");
+    await row.scrollIntoViewIfNeeded();
+    await expect(row.getByText("Not set", { exact: true })).toBeVisible();
+    await page.getByTestId("shortcut-actions-reveal-workspace-in-sidebar").click();
+    await page.getByTestId("shortcut-bind-reveal-workspace-in-sidebar").click();
+    await page.keyboard.press("Control+Alt+L");
+    await row.getByRole("button", { name: "Done", exact: true }).click();
+    await expect
+      .poll(() =>
+        page.evaluate(() => {
+          const saved = JSON.parse(
+            localStorage.getItem("@paseo:keyboard-shortcut-overrides") ?? "{}",
+          );
+          return saved["workspace-reveal-in-sidebar"];
+        }),
+      )
+      .toBe("Ctrl+Alt+L");
+    await page.screenshot({ path: info.outputPath("reveal-shortcut-settings.png") });
+    await clickSettingsBackToWorkspace(page);
+    const sidebar = page.getByTestId("sidebar-sessions").filter({ visible: true });
+    await page.getByTestId("menu-button").filter({ visible: true }).click();
+    await expect(sidebar).toHaveCount(0);
+    await page.keyboard.press("Control+Alt+L");
+    await expect(sidebar).toHaveCount(1);
+    await expect(
+      page.getByTestId(`sidebar-workspace-row-${getServerId()}:${workspace.workspaceId}`),
+    ).toBeVisible();
+  } finally {
+    await workspace.cleanup();
+  }
+});
 
 /** Reachable from the sidebar even when the cheat sheet's own shortcut is gone. */
 async function openCheatSheet(page: Page) {

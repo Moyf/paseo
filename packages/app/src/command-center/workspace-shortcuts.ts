@@ -38,5 +38,7 @@ export function resolveWorkspaceCommandCenterShortcuts({
     pinWorkspace: resolveShortcutKeysForAction("pin-workspace", overrides, platform) ?? undefined,
     renameWorkspace:
       resolveShortcutKeysForAction("rename-workspace", overrides, platform) ?? undefined,
+    revealInSidebar:
+      resolveShortcutKeysForAction("reveal-workspace-in-sidebar", overrides, platform) ?? undefined,
   };
 }

@@ -105,6 +105,7 @@ export interface WorkspaceCommandCenterShortcuts {
   toggleExplorerSidebar?: ShortcutKey[][];
   pinWorkspace?: ShortcutKey[][];
   renameWorkspace?: ShortcutKey[][];
+  revealInSidebar?: ShortcutKey[][];
 }
 
 export interface WorkspaceCommandCenterSource {
@@ -663,14 +664,15 @@ export function buildWorkspaceCommandCenterContributions(
 
   if (source.revealInSidebar) {
     contributions.push(
-      buildWorkspaceCallback({
+      buildWorkspaceAction({
         source,
         id: "workspace:reveal-in-sidebar",
         rank: 27,
         title: source.labels.revealInSidebar,
         keywords: ["reveal", "sidebar", "locate", "scroll", "show", "list"],
         icon: source.icons.revealInSidebar,
-        run: source.revealInSidebar,
+        shortcutKeys: source.shortcuts.revealInSidebar,
+        action: { id: "workspace.reveal-in-sidebar", scope: "workspace" },
         visibility: "query",
       }),
     );

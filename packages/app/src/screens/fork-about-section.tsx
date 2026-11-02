@@ -11,6 +11,7 @@ import {
   FORK_FEATURES,
   FORK_REPO_URL,
   FORK_STATUS_TEXT,
+  FORK_MERGE_STATUS_TEXT,
   forkFeaturePrNumber,
   type ForkFeature,
 } from "@/fork-info";
@@ -63,7 +64,7 @@ export function ForkAboutSection() {
           </Text>
         </PressHighlight>
         {FORK_FEATURES.map((feature) => (
-          <ForkFeatureRow key={feature.label} feature={feature} onOpen={openFeature} />
+          <ForkFeatureRow key={feature.id} feature={feature} onOpen={openFeature} />
         ))}
       </View>
     </SettingsSection>
@@ -81,7 +82,8 @@ function ForkFeatureRow({
 
   return (
     <PressHighlight
-      style={[settingsStyles.row, settingsStyles.rowBorder]}
+      testID={`fork-feature-${feature.id}`}
+      style={[settingsStyles.row, settingsStyles.rowBorder, styles.featureRow]}
       disabled={feature.prUrl === null}
       onPress={handlePress}
       accessibilityRole={feature.prUrl ? "button" : undefined}
@@ -89,8 +91,17 @@ function ForkFeatureRow({
       <View style={settingsStyles.rowContent}>
         <Text style={settingsStyles.rowTitle}>{feature.label}</Text>
         <Text style={settingsStyles.rowHint}>{feature.detail}</Text>
+        <Text style={settingsStyles.rowHint}>
+          {feature.addedOn} · {feature.branch}
+        </Text>
+        {feature.forkStatus === "regressed" ? (
+          <Text style={styles.regression}>{feature.auditNotes}</Text>
+        ) : null}
       </View>
-      <Text style={styles.status}>{statusText(feature)}</Text>
+      <View style={styles.featureStatus}>
+        <Text style={styles.status}>{FORK_MERGE_STATUS_TEXT[feature.forkStatus]}</Text>
+        <Text style={styles.status}>{statusText(feature)}</Text>
+      </View>
     </PressHighlight>
   );
 }
@@ -102,6 +113,19 @@ const styles = StyleSheet.create((theme) => ({
   },
   status: {
     color: theme.colors.foregroundMuted,
+    fontSize: theme.fontSize.sm,
+  },
+  featureStatus: {
+    flexShrink: 0,
+    alignItems: { xs: "flex-start", md: "flex-end" },
+    gap: theme.spacing[1],
+  },
+  featureRow: {
+    flexDirection: { xs: "column", md: "row" },
+    alignItems: { xs: "stretch", md: "center" },
+  },
+  regression: {
+    color: theme.colors.statusWarning,
     fontSize: theme.fontSize.sm,
   },
 }));
