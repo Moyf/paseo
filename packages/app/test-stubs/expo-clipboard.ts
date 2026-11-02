@@ -1,9 +1,15 @@
-// Test stub for expo-clipboard. The sidebar clipboard actions write strings; nothing in tests
-// reads or renders the paste button, and the package ships uncompiled JSX in its .js build.
-export const setStringAsync = async (): Promise<boolean> => true;
-export const getStringAsync = async (): Promise<string> => "";
-export const setImageAsync = async (): Promise<void> => undefined;
-export const hasStringAsync = async (): Promise<boolean> => false;
+// The package ships JSX in .js files, which the dependency optimizer cannot parse.
+export async function setStringAsync(): Promise<boolean> {
+  return true;
+}
+export async function getStringAsync(): Promise<string> {
+  return "";
+}
+export async function hasStringAsync(): Promise<boolean> {
+  return false;
+}
+
+export async function setImageAsync(): Promise<void> {}
 
 export default { setStringAsync, getStringAsync };
 

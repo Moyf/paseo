@@ -1,4 +1,5 @@
 packages:
+  - plugins
   - packages/*
 
 nodeLinker: hoisted
@@ -8,11 +9,16 @@ preferWorkspacePackages: true
 overrides:
   "@codemirror/language": "6.12.4"
   "@codemirror/view": "6.43.6"
+  "expo": "~57.0.30"
+  "expo-modules-core": "57.0.23"
+  "expo-router": "~57.0.28"
   "lightningcss": "1.30.1"
-  "react": "19.1.0"
-  "react-dom": "19.1.0"
-  "react-native-reanimated": "4.3.1"
-  "react-native-worklets": "0.8.3"
+  "react": "19.2.3"
+  "react-dom": "19.2.3"
+  "react-native": "0.86.3"
+  "react-native-gesture-handler": "~2.32.0"
+  "react-native-reanimated": "4.5.5"
+  "react-native-worklets": "0.10.4"
 
 onlyBuiltDependencies:
   - dtrace-provider
@@ -31,8 +37,11 @@ patchedDependencies:
   "@mattermost/react-native-paste-input@2.0.1": patches/pnpm/@mattermost+react-native-paste-input+2.0.1.patch
   "@opencode-ai/sdk@1.14.46": patches/pnpm/@opencode-ai+sdk+1.14.46.patch
   "react-native-draggable-flatlist@4.0.3": patches/pnpm/react-native-draggable-flatlist+4.0.3.patch
-  "react-native-gesture-handler@2.28.0": patches/pnpm/react-native-gesture-handler+2.28.0.patch
-  "react-native-markdown-display@7.0.2": patches/pnpm/react-native-markdown-display+7.0.2.patch
-  "react-native-svg@15.15.3": patches/pnpm/react-native-svg+15.15.3.patch
+  "react-native-gesture-handler@2.32.0": patches/pnpm/react-native-gesture-handler+2.32.0.patch
+  "react-native-svg@15.15.4": patches/pnpm/react-native-svg+15.15.4.patch
   "react-native-unistyles@3.2.4": patches/pnpm/react-native-unistyles+3.2.4.patch
   "app-builder-lib@26.8.1": patches/pnpm/app-builder-lib+26.8.1.patch
+  "expo-modules-core@57.0.23": patches/pnpm/expo-modules-core+57.0.23.patch
+  "react-native-enriched-markdown@1.2.0-nightly-20261014-766fc0e67": patches/pnpm/react-native-enriched-markdown+1.2.0-nightly-20261014-766fc0e67.patch
+  "react-native-reanimated@4.5.5": patches/pnpm/react-native-reanimated+4.5.5.patch
+  "@gorhom/bottom-sheet@5.2.14": patches/pnpm/@gorhom+bottom-sheet+5.2.14.patch
