@@ -189,12 +189,12 @@
       "branch": "moy/markdown-cjk-highlight",
       "label": "中文 Markdown 强调与高亮",
       "detail": "支持中文粗体/斜体及 ==高亮==，聊天与 Markdown 预览使用相同渲染能力。",
-      "forkStatus": "in-development",
-      "mergedCommit": null,
+      "forkStatus": "merged",
+      "mergedCommit": "6059c2138",
       "status": "local-only",
       "prUrl": null,
-      "auditedOn": "2026-11-02",
-      "auditNotes": "bdc6bfe22 等提交位于当前功能分支，尚未合入 origin/local/all-feats；这不是功能被删除。"
+      "auditedOn": "2026-11-03",
+      "auditNotes": "已通过 PR #4 合入发布分支（合并提交 6059c2138）。官方构建 0.14.0-af.20261102.6059c2138 实测渲染正常：中文加粗、==高亮==、代码内字面量保持原样；自动化断言 strong/mark 计算样式通过。"
     }
   ]
 }
