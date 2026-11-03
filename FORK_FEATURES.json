@@ -195,6 +195,19 @@
       "prUrl": null,
       "auditedOn": "2026-11-03",
       "auditNotes": "已通过 PR #4 合入发布分支（合并提交 6059c2138）。官方构建 0.14.0-af.20261102.6059c2138 实测渲染正常：中文加粗、==高亮==、代码内字面量保持原样；自动化断言 strong/mark 计算样式通过。"
+    },
+    {
+      "id": "settings-list-filters",
+      "addedOn": "2026-11-03",
+      "branch": "feat/settings-list-filters",
+      "label": "设置页列表过滤",
+      "detail": "插件页与快捷键设置页顶部过滤框，按文本即时筛选列表；快捷键页复用弹窗搜索逻辑。",
+      "forkStatus": "merged",
+      "mergedCommit": "e15d9218a",
+      "status": "pr-open",
+      "prUrl": "https://github.com/getpaseo/paseo/pull/8638",
+      "auditedOn": "2026-11-03",
+      "auditNotes": "经独立 agent 审查后合入 fork main（PR #5），cherry-pick 至发布分支。插件页过滤 11/11 测试通过；快捷键页复用 filterShortcutHelpSections，与弹窗一致。catalog 清空时过滤器自动重置。"
     }
   ]
 }

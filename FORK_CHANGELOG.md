@@ -2,6 +2,13 @@
 
 `local/all-feats` 相对上游的改动记录。每次打包的 Release 说明取自最上面的一个 `##` 段落（见 `.github/workflows/build-all-feats.yml`）；发布新改动时在这里加一个新段落，放在最上面。
 
+## 2026-11-03（设置页列表过滤）
+
+- 新增插件页过滤：插件列表上方过滤框，按插件 ID、描述和安装来源即时筛选；过滤无结果有专门提示，目录清空时过滤器自动重置。
+- 新增快捷键设置页过滤：复用快捷键弹窗的搜索逻辑（`filterShortcutHelpSections`），按名称、说明和按键拼写（`cmd k` / `command+k` / `⌘K`）匹配；过滤后无结果显示空态卡片。
+- 新增文案已翻译全部支持语言；测试覆盖过滤、清空重置与无结果状态。
+- 分支 `feat/settings-list-filters`，已合入 fork main（PR #5），上游 PR：getpaseo/paseo#8638。
+
 ## 2026-11-03（中文 Markdown 强调与高亮）
 
 - 合并 PR #4（`moy/markdown-cjk-highlight`）：中文标点旁的 `**加粗**`/`*斜体*` 正常渲染（如 `**Obsidian：**决定…`），并新增 `==高亮==` 语法；聊天、Markdown 预览与计划卡共用同一渲染能力。
