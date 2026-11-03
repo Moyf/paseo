@@ -5,6 +5,7 @@ import {
   type InlinePathTarget,
 } from "./parse";
 import { i18n } from "@/i18n/i18next";
+import { isAbsolutePath } from "@/utils/path";
 
 export interface AssistantFileLinkSource {
   href: string;
@@ -33,8 +34,8 @@ export interface DirectorySuggestionResult {
 export type GetDirectorySuggestions = (input: {
   query: string;
   cwd: string;
-  includeFiles: true;
-  includeDirectories: false;
+  includeFiles: boolean;
+  includeDirectories: boolean;
   matchMode: "suffix";
   limit: number;
 }) => Promise<DirectorySuggestionResult>;
@@ -95,6 +96,26 @@ export async function fetchDaemonResolution({
     }
   };
 
+  // The stripped retry also accepts folders: a workspace-name-prefixed link like
+  // `project/docs` names a directory, and the caller's open plan probes the hit before
+  // choosing how to open it.
+  const searchSuggestionsWithFolders = async (
+    query: string,
+  ): Promise<DirectorySuggestionResult> => {
+    try {
+      return await getDirectorySuggestions({
+        query,
+        cwd: trimmedRoot,
+        includeFiles: true,
+        includeDirectories: true,
+        matchMode: "suffix",
+        limit: 1,
+      });
+    } catch {
+      throw new UnresolvedFileLinkError(token);
+    }
+  };
+
   let suggestions = await searchSuggestions(ambiguousQuery);
   let match = suggestions.entries.find((entry) => entry.kind === "file");
   if (!match && !suggestions.error) {
@@ -102,8 +123,10 @@ export async function fetchDaemonResolution({
     // The strict suffix search misses those, so retry once without that prefix.
     const strippedQuery = stripWorkspaceFolderNamePrefix(ambiguousQuery, trimmedRoot);
     if (strippedQuery !== ambiguousQuery) {
-      suggestions = await searchSuggestions(strippedQuery);
-      match = suggestions.entries.find((entry) => entry.kind === "file");
+      suggestions = await searchSuggestionsWithFolders(strippedQuery);
+      match = suggestions.entries.find(
+        (entry) => entry.kind === "file" || entry.kind === "directory",
+      );
     }
   }
 
@@ -118,7 +141,8 @@ export async function fetchDaemonResolution({
 }
 
 function stripWorkspaceFolderNamePrefix(query: string, workspaceRoot: string): string {
-  const trimmedRoot = workspaceRoot.replace(/\/+$/, "");
+  // Windows roots arrive with backslashes; normalize before extracting the folder name.
+  const trimmedRoot = workspaceRoot.replace(/\\/g, "/").replace(/\/+$/, "");
   const rootFolderName = trimmedRoot === "/" ? null : (trimmedRoot.split("/").pop() ?? null);
   if (!rootFolderName) {
     return query;
@@ -129,6 +153,62 @@ function stripWorkspaceFolderNamePrefix(query: string, workspaceRoot: string): s
     return segments.slice(1).join("/");
   }
   return query;
+}
+
+/** Only file-looking paths nested inside the workspace need suffix search. */
+function nestedRelativeLookupQuery(
+  targetPath: string,
+  workspaceRoot: string | undefined,
+): string | null {
+  const root = workspaceRoot?.trim();
+  if (!root) {
+    return null;
+  }
+  const normalizedRoot = root.replace(/\\/g, "/").replace(/\/+$/, "");
+  const normalizedPath = targetPath.replace(/\\/g, "/");
+  const prefix = `${normalizedRoot}/`;
+  if (!normalizedPath.startsWith(prefix)) {
+    return null;
+  }
+  const relative = normalizedPath.slice(prefix.length);
+  if (!relative.includes("/") || !isFileLookingAssistantToken(encodeURI(relative))) {
+    return null;
+  }
+  return relative;
+}
+
+/** When a markdown link points at workspaceRoot/schema/x.md and that file is
+ * missing, ask the same suffix lookup bare names already use. An exact hit
+ * stays on that path. A suffix hit such as repo-a/schema/x.md replaces it.
+ * Lookup failure keeps the original target.
+ */
+export async function resolveMissingNestedRelativeFile(input: {
+  target: InlinePathTarget;
+  workspaceRoot?: string;
+  getDirectorySuggestions: GetDirectorySuggestions;
+}): Promise<InlinePathTarget> {
+  if (
+    isAbsoluteInlineCodeToken(input.target.raw) ||
+    input.target.raw.startsWith("~/") ||
+    input.target.raw.endsWith("/")
+  ) {
+    return input.target;
+  }
+  const query = nestedRelativeLookupQuery(input.target.path, input.workspaceRoot);
+  if (!query) {
+    return input.target;
+  }
+  try {
+    return await fetchDaemonResolution({
+      ambiguousQuery: query,
+      token: input.target.raw,
+      target: input.target,
+      workspaceRoot: input.workspaceRoot,
+      getDirectorySuggestions: input.getDirectorySuggestions,
+    });
+  } catch {
+    return input.target;
+  }
 }
 
 export function classifyForResolution(
@@ -241,11 +321,7 @@ export function shouldResolveDirectFileThroughSuggestions(input: {
 }
 
 function isAbsoluteInlineCodeToken(token: string): boolean {
-  return (
-    token.startsWith("/") ||
-    token.toLowerCase().startsWith("file://") ||
-    /^[A-Za-z]:[\\/]/.test(token)
-  );
+  return isAbsolutePath(token) || token.toLowerCase().startsWith("file://");
 }
 
 function isLinkifiedSource(source: AssistantFileLinkSource): boolean {

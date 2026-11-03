@@ -1,10 +1,10 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
-import yaml from "js-yaml";
+import { load } from "js-yaml";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
-const workspace = yaml.load(readFileSync(path.join(root, "pnpm-workspace.yaml"), "utf8"));
+const workspace = load(readFileSync(path.join(root, "pnpm-workspace.yaml"), "utf8"));
 
 // pnpm patches are the same dependency fixes with package-relative paths.
 for (const [packageName, destination] of Object.entries(workspace.patchedDependencies)) {

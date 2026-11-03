@@ -114,7 +114,7 @@ jobs:
             # Explicit target names override the per-target arch lists in
             # electron-builder.yml; "--win --x64" alone would still build arm64.
             targets: "--win nsis zip --x64"
-          - os: macos-14
+          - os: macos-latest
             name: macos
             platform_tag: macos-arm64
             targets: "--mac --arm64"
@@ -159,7 +159,7 @@ jobs:
         env:
           EP_GH_IGNORE_TIME: "true"
           # Metro web bundling of packages/app OOMs at Node's default heap on the
-          # 7 GB macos-14 runners ("Ineffective mark-compacts near heap limit").
+          # 7 GB macOS runners ("Ineffective mark-compacts near heap limit").
           NODE_OPTIONS: "--max-old-space-size=6144"
         run: |
           set -euo pipefail
