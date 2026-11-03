@@ -63,20 +63,68 @@ describe("shared Markdown source adaptation", () => {
       { type: "Text", content: "区分。" },
     ]);
   });
+  it("renders bold around CJK brackets after a space or line start", async () => {
+    const source = "缓存按 **「快速缓存」**区分。";
+    const tree = await parseMarkdown(prepareMarkdownSource(source).render(), MARKDOWN_FLAGS);
+    expect(tree.children?.[0]?.children).toEqual([
+      { type: "Text", content: "缓存按 " },
+      { type: "Strong", children: [{ type: "Text", content: "「快速缓存」" }] },
+      { type: "Text", content: "区分。" },
+    ]);
+  });
+  it("restores punctuation-bounded emphasis inside CJK brackets", async () => {
+    const source = "「**word!**」";
+    const tree = await parseMarkdown(prepareMarkdownSource(source).render(), MARKDOWN_FLAGS);
+    expect(tree.children?.[0]?.children).toEqual([
+      { type: "Text", content: "「" },
+      { type: "Strong", children: [{ type: "Text", content: "word!" }] },
+      { type: "Text", content: "」" },
+    ]);
+    const parens = await parseMarkdown(
+      prepareMarkdownSource("（**word:**）").render(),
+      MARKDOWN_FLAGS,
+    );
+    expect(parens.children?.[0]?.children).toEqual([
+      { type: "Text", content: "（" },
+      { type: "Strong", children: [{ type: "Text", content: "word:" }] },
+      { type: "Text", content: "）" },
+    ]);
+  });
+  it("keeps a bold link closing before CJK punctuation literal-free", async () => {
+    const source = "**[链接](https://x)**。";
+    const tree = await parseMarkdown(prepareMarkdownSource(source).render(), MARKDOWN_FLAGS);
+    const strong = tree.children?.[0]?.children?.[0];
+    expect(strong?.type).toBe("Strong");
+    expect(strong?.children?.[0]?.type).toBe("Link");
+    expect(tree.children?.[0]?.children?.[1]?.content).toBe("。");
+  });
   it.each([
-    ["前**「中文」**后", "Strong", "「中文」"],
-    ["前*「日本語。」*后", "Emphasis", "「日本語。」"],
-    ["前**（한국어）**后", "Strong", "（한국어）"],
-    ["前***「中文」***后", "Emphasis", "「中文」"],
-    ["前**︵中文︶**后", "Strong", "︵中文︶"],
-  ])("renders CJK punctuation inside emphasis: %s", async (source, type, text) => {
+    "前**「中文」**后",
+    "前*「日本語。」*后",
+    "前**（한국어）**后",
+    "前***「中文」***后",
+    "前**︵中文︶**后",
+  ])(
+    "keeps letter-bounded emphasis after punctuation literal, as CommonMark: %s",
+    async (source) => {
+      const tree = await parseMarkdown(prepareMarkdownSource(source).render(), MARKDOWN_FLAGS);
+      expect(tree.children?.[0]?.children).toEqual([
+        { type: "Text", content: source.replace(/\\([*=])/g, "$1") },
+      ]);
+    },
+  );
+  it("keeps a bold link suffix literal while the link itself still parses", async () => {
+    const source = "**[链接](https://x)**后";
     const tree = await parseMarkdown(prepareMarkdownSource(source).render(), MARKDOWN_FLAGS);
     const content = tree.children?.[0]?.children;
-    expect(content?.map((node) => node.type)).toEqual(["Text", type, "Text"]);
-    function nodeText(node: ASTNode): string {
-      return node.content ?? node.children?.map(nodeText).join("") ?? "";
-    }
-    expect(content?.map(nodeText)).toEqual(["前", text, "后"]);
+    expect(content?.some((node) => node.type === "Strong" || node.type === "Highlight")).toBe(
+      false,
+    );
+    expect(content?.map((node) => (node.type === "Link" ? "Link" : node.content))).toEqual([
+      "**",
+      "Link",
+      "**后",
+    ]);
   });
   it.each([
     String.raw`\*\*Obsidian：\*\*决定`,
