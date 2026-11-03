@@ -72,6 +72,16 @@ vi.mock("react-native-reanimated", () => ({
   useAnimatedStyle: (factory: () => unknown) => factory(),
   useDerivedValue: (factory: () => unknown) => ({ value: factory() }),
   withTiming: (value: unknown) => value,
+  // Entering/exiting animations resolve to chainable stubs; the jsdom render
+  // only passes them through as unknown props.
+  FadeIn: (() => {
+    const stub = { duration: () => stub };
+    return stub;
+  })(),
+  FadeOut: (() => {
+    const stub = { duration: () => stub };
+    return stub;
+  })(),
 }));
 
 vi.mock("@gorhom/bottom-sheet", async () => {
