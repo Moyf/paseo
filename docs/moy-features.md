@@ -24,6 +24,47 @@ request.
   `fork-info.test.ts` suite and the feature's own regression tests. Do not promise
   a feature was preserved without checking it.
 
+## 2026-11-03 audit (upstream v0.15.0 merge)
+
+Merged the upstream `v0.15.0` stable tag into `local/all-feats` (73dc2964a plus
+follow-up type fixes). The release baseline moved from 0.14.0 to 0.15.0;
+`check-fork-release` verifies the baseline and that no unreleased upstream/main
+commits are present.
+
+Per-feature findings:
+
+- **sidebar-multi-select**: ported onto upstream's new
+  `useLimitedSidebarGroup({ items, selection, policy })` API; the selection
+  segments keep registering the rows each section renders, now including the
+  leading row. The modifier-click suppression was redesigned after Greptile
+  flagged the first attempt: react-native-web invokes `onPress` from the `click`
+  event, so the suppression records the pointerup's coordinates and only
+  suppresses the click that repeats them; keyboard activation (detail 0) bypasses
+  it. Regression tests cover the matching click, the keyboard click and a click
+  elsewhere.
+- **assistant-file-links**: the resolver conflict keeps the fork's
+  workspace-folder-name prefix stripping (with Windows backslash normalization)
+  alongside upstream's nested-relative lookup; the stripped retry now also
+  accepts folder hits; `parseFileProtocolUrl` splits the literal line suffix on
+  the still-encoded pathname so `report%3A12` keeps its colon.
+- **terminal-open-location**: raced script terminals move to the remembered dock
+  when the destination has no New tab placeholder; folder clicks in the terminal
+  go through `revealDirectory` and are selected in the Files tree.
+- **workspace-rename**: `useDoublePress` creates the handler once and reads the
+  latest callbacks through a ref, keeping the double-press timing stable.
+- **markdown-cjk-highlight**: the vitest md4c WASM trailer transform needed the
+  fork's loose regex restored — the patched build ships a minified trailer that
+  upstream's `lastIndexOf` form does not match. 167 renderer assertions pass.
+- **sidebar-reveal**: the reveal gates were ported onto the new API (the reveal
+  effect re-implemented against `selection`); the reveal store and scroller are
+  intact. Entry-point status is unchanged from the 2026-11-02 audit.
+- **settings-list-filters**: the JSDOM filter tests remain; the browser-suite
+  conversion is drafted but the full-page mount needs app-level provider seams,
+  so it is not pushed yet and its Greptile thread stays open.
+
+`fork-info.test.ts` and every feature's regression tests pass on the merged
+branch. The ledger's `auditedOn` fields are updated to 2026-11-03.
+
 ## 2026-11-02 audit
 
 Compared the Moy release branch at `9c66e7f1e`, feature branch tips, feature

@@ -2,6 +2,14 @@
 
 `local/all-feats` 相对上游的改动记录。每次打包的 Release 说明取自最上面的一个 `##` 段落（见 `.github/workflows/build-all-feats.yml`）；发布新改动时在这里加一个新段落，放在最上面。
 
+## 2026-11-03（上游 v0.15.0 合入）
+
+- 上游 v0.15.0 正式版合入 Moy 版本，发布基线从 0.14.0 升到 0.15.0（`check-fork-release` 验证通过）
+- 会话多选移植到上游新的 `useLimitedSidebarGroup({items, selection, policy})` API；修饰键点击抑制重写为 pointerup 坐标匹配（RN-web 从 click 事件派发 onPress，键盘点击 detail 0 旁路），修复早期推送的类型错误与 Shift 范围回归
+- 助手文件链接：保留工作区名前缀剥离并补 Windows 反斜杠归一化；前缀重试现在也命中文件夹；`file://` 行号后缀在解码前切分，`report%3A12` 不再被当成行号
+- 终端打开位置：竞争落位的脚本终端现在移到记忆的底部 dock；终端里点击的文件夹在 Files 树中展开父级并定位
+- 全部 16 个特性完成合并后审计（`FORK_FEATURES.json` 的 `auditedOn` 已更新），特性回归测试与 `fork-info.test.ts` 全部通过
+
 ## 2026-11-03（侧边栏定位修复）
 
 - 修复「在侧边栏中显示」在 Host 过滤排除目标工作区所在主机时静默失效：定位请求先按请求身份清除 Host 过滤，再查找行数据（此前该主机的行数据不会水合，查找为空，请求只能默默过期）

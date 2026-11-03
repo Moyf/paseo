@@ -11,8 +11,8 @@
       "mergedCommit": "79ec085d5",
       "status": "local-only",
       "prUrl": null,
-      "auditedOn": "2026-11-02",
-      "auditNotes": "ff7a2074e 合并 open-location 时移除了标题栏准星按钮和标题右键入口；命令面板与定位流程仍在。恢复补丁已在当前工作区通过浏览器测试，尚未合入发布分支；本次另补默认未绑定的可自定义 Reveal 快捷键。"
+      "auditedOn": "2026-11-03",
+      "auditNotes": "v0.15.0 合并把 reveal 门控移植到新的 useLimitedSidebarGroup API（reveal 效果按 selection 参数重写）；reveal store 与滚动控制器保留；入口点状态延续 2026-11-02 审计结论。"
     },
     {
       "id": "sidebar-multi-select",
@@ -24,8 +24,8 @@
       "mergedCommit": "59743b099",
       "status": "local-only",
       "prUrl": null,
-      "auditedOn": "2026-11-02",
-      "auditNotes": "发布分支保留选择状态、生产行接入、批量菜单和快捷键。"
+      "auditedOn": "2026-11-03",
+      "auditNotes": "v0.15.0 合并后移植到上游新的 useLimitedSidebarGroup({items, selection, policy}) API：选区段注册保留并补上 leading 行；press-modifiers 的抑制改为 pointerup 坐标匹配（RN-web 从 click 事件派发 onPress，键盘 detail 0 旁路），修复了早期推送的类型错误与 Shift 范围回归。"
     },
     {
       "id": "assistant-file-links",
@@ -37,8 +37,8 @@
       "mergedCommit": "d3e4f278b",
       "status": "pr-open",
       "prUrl": "https://github.com/getpaseo/paseo/pull/6420",
-      "auditedOn": "2026-11-02",
-      "auditNotes": "发布分支保留解析、右键菜单、外部文件夹探测与聊天/终端入口。"
+      "auditedOn": "2026-11-03",
+      "auditNotes": "v0.15.0 合并解决 resolver 冲突：保留工作区名前缀剥离（补 Windows 反斜杠归一化）与上游嵌套相对路径查找；stripped 重试现在也接受文件夹命中；file:// 行号后缀改为在解码前于编码路径上切分。"
     },
     {
       "id": "workspace-rename",
@@ -50,8 +50,8 @@
       "mergedCommit": "8ca4f29e8",
       "status": "pr-open",
       "prUrl": "https://github.com/getpaseo/paseo/pull/4643",
-      "auditedOn": "2026-11-02",
-      "auditNotes": "发布分支保留 double-press hook、侧栏与标签页入口以及键盘动作。"
+      "auditedOn": "2026-11-03",
+      "auditNotes": "v0.15.0 合并后 useDoublePress 改为一次创建、经 ref 读取最新回调，双击重命名时序在选择触发的重建下保持稳定；类型检查通过。"
     },
     {
       "id": "terminal-open-location",
@@ -63,8 +63,8 @@
       "mergedCommit": "a218ee268",
       "status": "pr-open",
       "prUrl": "https://github.com/getpaseo/paseo/pull/5344",
-      "auditedOn": "2026-11-02",
-      "auditNotes": "本地分支与远端合入版本的提交 ID 不同，不能仅用 ancestry 判断未合并。发布分支保留 ensureBottomPane、脚本终端放置及 Dock 尺寸初始化。"
+      "auditedOn": "2026-11-03",
+      "auditNotes": "v0.15.0 合并后补齐两处行为：竞争落位到焦点窗格的脚本终端现在移动到记忆的底部 dock（无占位符时留占位符再打开）；终端里点击的文件夹改为 revealDirectory 展开父级链后在 Files 树中定位。"
     },
     {
       "id": "settings-last-page",
@@ -76,7 +76,7 @@
       "mergedCommit": "026fe58ac",
       "status": "local-only",
       "prUrl": null,
-      "auditedOn": "2026-11-02",
+      "auditedOn": "2026-11-03",
       "auditNotes": "存储、焦点记录与打开设置入口仍在。生成的 Expo 路由类型暴露已有类型错误；本次源码修复去掉宽泛 string 返回类型，保留路由构造器的字面量推断后 typecheck 通过。"
     },
     {
@@ -89,7 +89,7 @@
       "mergedCommit": "f9a843ffe",
       "status": "local-only",
       "prUrl": null,
-      "auditedOn": "2026-11-02",
+      "auditedOn": "2026-11-03",
       "auditNotes": "设置开关、持久化、daemon 下载控制和安装条件均保留。"
     },
     {
@@ -102,7 +102,7 @@
       "mergedCommit": "a3a05e7bc",
       "status": "pr-closed",
       "prUrl": "https://github.com/getpaseo/paseo/pull/5413",
-      "auditedOn": "2026-11-02",
+      "auditedOn": "2026-11-03",
       "auditNotes": "发布分支保留 no-drag scope 和 RNW dataSet 传递；PR 关闭不表示 Moy 功能已删除。"
     },
     {
@@ -115,7 +115,7 @@
       "mergedCommit": "05e60569c",
       "status": "local-only",
       "prUrl": null,
-      "auditedOn": "2026-11-02",
+      "auditedOn": "2026-11-03",
       "auditNotes": "electron-builder.yml 的两项 fork 配置仍为 false；0.14 macOS 包构建成功。"
     },
     {
@@ -128,7 +128,7 @@
       "mergedCommit": "3f6859bb1",
       "status": "local-only",
       "prUrl": null,
-      "auditedOn": "2026-11-02",
+      "auditedOn": "2026-11-03",
       "auditNotes": "API 类型声明和委托至 daemonClient 的调用均保留。"
     },
     {
@@ -141,7 +141,7 @@
       "mergedCommit": "b39901ef7",
       "status": "local-only",
       "prUrl": null,
-      "auditedOn": "2026-11-02",
+      "auditedOn": "2026-11-03",
       "auditNotes": "WorkspaceMetaRow 仍分离 labels 与 stateItems；标签垂直留白保留。"
     },
     {
@@ -154,7 +154,7 @@
       "mergedCommit": "4c3db3df5",
       "status": "local-only",
       "prUrl": null,
-      "auditedOn": "2026-11-02",
+      "auditedOn": "2026-11-03",
       "auditNotes": "HideArchivedFilter、settings.hideArchivedSessions 与会话过滤入口均保留。"
     },
     {
@@ -167,7 +167,7 @@
       "mergedCommit": "6f46428a7",
       "status": "local-only",
       "prUrl": null,
-      "auditedOn": "2026-11-02",
+      "auditedOn": "2026-11-03",
       "auditNotes": "菜单尺寸限制和 project filter host label 实现仍保留。"
     },
     {
@@ -180,7 +180,7 @@
       "mergedCommit": "c3cbb2ddb",
       "status": "local-only",
       "prUrl": null,
-      "auditedOn": "2026-11-02",
+      "auditedOn": "2026-11-03",
       "auditNotes": "原 About 手写列表遗漏 Reveal、History 筛选和标签换行；本次改为读取此台账。"
     },
     {
@@ -194,7 +194,7 @@
       "status": "local-only",
       "prUrl": null,
       "auditedOn": "2026-11-03",
-      "auditNotes": "已通过 PR #4 合入发布分支（合并提交 6059c2138）。官方构建 0.14.0-af.20261102.6059c2138 实测渲染正常：中文加粗、==高亮==、代码内字面量保持原样；自动化断言 strong/mark 计算样式通过。"
+      "auditNotes": "v0.15.0 合并把 vitest 的 md4c WASM trailer 变换恢复为宽松正则（fork 补丁产物为压缩风格引号/括号），CJK 断言 167 项全部通过。"
     },
     {
       "id": "settings-list-filters",
@@ -207,7 +207,7 @@
       "status": "pr-open",
       "prUrl": "https://github.com/getpaseo/paseo/pull/8638",
       "auditedOn": "2026-11-03",
-      "auditNotes": "经独立 agent 审查后合入 fork main（PR #5），cherry-pick 至发布分支。插件页过滤 11/11 测试通过；快捷键页复用 filterShortcutHelpSections，与弹窗一致。catalog 清空时过滤器自动重置。"
+      "auditNotes": "v0.15.0 合并后 JSDOM 过滤测试原样保留；Greptile 要求的 browser 套件转换已起草但全页挂载在 browser 工程尚需应用级 seam，未随本次推送（线程保持未解决）。"
     }
   ]
 }
